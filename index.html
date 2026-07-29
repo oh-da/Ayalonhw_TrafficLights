@@ -199,7 +199,7 @@
     <button class="info-btn" id="open-sources" title="מקורות" aria-label="מקורות">i</button>
     <p class="kicker">שכבות GIS · זכויות דרך ורמזורים</p>
     <h1>נתיבי איילון × נת״ע<br>שיוך רמזורים</h1>
-    <p class="sub">שני תרחישים: ״מצב קיים״ — שיוך לפי עמודת רשות התמרור בשכבת הרמזורים; ״מצב אפשרי״ — רמזור של נתיבי איילון הנופל בתוך חיץ הרק״ל (100 מ׳) או המטרו (50 מ׳) של נת״ע מסומן כ״הועבר: נתיבי איילון ← נת״ע״. ריחוף מציג תקציר, לחיצה מציגה את הפרטים המלאים.</p>
+    <p class="sub">שני תרחישים: ״מצב קיים״ — שיוך לפי עמודת רשות התמרור בשכבת הרמזורים; ״מצב אפשרי״ — רמזור של נתיבי איילון הנופל בתוך חיץ הרק״ל (100 מ׳) או המטרו (50 מ׳) של נת״ע מסומן כ״עשוי לעבור: נתיבי איילון ← נת״ע״. ריחוף מציג תקציר, לחיצה מציגה את הפרטים המלאים.</p>
   </div>
 
   <div class="block">
@@ -220,7 +220,7 @@
         <option value="all">כל הרמזורים</option>
         <option value="ayalon">נתיבי איילון</option>
         <option value="nta">נת״ע</option>
-        <option value="moved">הועברו: נתיבי איילון ← נת״ע</option>
+        <option value="moved">עשויים לעבור: נתיבי איילון ← נת״ע</option>
         <option value="none">רשות תמרור אחרת</option>
       </select>
     </label>
@@ -243,7 +243,7 @@
     <div class="stats">
       <div class="stat"><b id="s-ayalon" style="color:var(--brand)">—</b><span>נתיבי איילון (סופי)</span></div>
       <div class="stat"><b id="s-nta" style="color:var(--brand-2)">—</b><span>נת״ע (סה״כ)</span></div>
-      <div class="stat"><b id="s-moved" style="color:var(--moved)">—</b><span>הועברו מאיילון לנת״ע</span></div>
+      <div class="stat"><b id="s-moved" style="color:var(--moved)">—</b><span>עשויים לעבור מאיילון לנת״ע</span></div>
       <div class="stat"><b id="s-none" style="color:var(--untagged)">—</b><span>רשות תמרור אחרת</span></div>
     </div>
     <div class="flow" id="flow"></div>
@@ -268,7 +268,7 @@
       <li class="sep" aria-hidden="true"></li>
       <li><i class="round" style="background:#344AC1"></i>נתיבי איילון</li>
       <li><i class="round" style="background:#00B8F5"></i>נת״ע</li>
-      <li><i class="round" style="background:#E4572E"></i>הועברו לנת״ע</li>
+      <li><i class="round" style="background:#E4572E"></i>עשויים לעבור לנת״ע</li>
       <li><i class="round" style="background:#9aa1b0"></i>רשות תמרור אחרת</li>
     </ul>
   </div>
@@ -301,9 +301,9 @@
     </div>
     <div class="modal-b">
       <table class="cmp" id="cmp-table"></table>
-      <p class="modal-note">מצב קיים — שיוך לפי עמודת רשות התמרור בשכבת הרמזורים. מצב אפשרי — רמזור של נתיבי איילון הנופל בחיץ הרק״ל (100 מ׳) או המטרו (50 מ׳) של נת״ע מועבר לנת״ע.</p>
+      <p class="modal-note">מצב קיים — שיוך לפי עמודת רשות התמרור בשכבת הרמזורים. מצב אפשרי — רמזור של נתיבי איילון הנופל בחיץ הרק״ל (100 מ׳) או המטרו (50 מ׳) של נת״ע עשוי לעבור לנת״ע.</p>
       <div class="insight"><b>ראוי לציון:</b> <span id="insight"></span></div>
-      <p class="block-title" style="margin:18px 0 8px">רמזורים שהועברו מנתיבי איילון לנת״ע <span id="moved-count" style="color:var(--moved)"></span></p>
+      <p class="block-title" style="margin:18px 0 8px">רמזורים שעשויים לעבור מנתיבי איילון לנת״ע <span id="moved-count" style="color:var(--moved)"></span></p>
       <div id="moved-list"></div>
       <p class="modal-note">לחיצה על רמזור ברשימה תסגור את החלון ותתמקד בו על המפה (בתרחיש ״מצב אפשרי״).</p>
     </div>
@@ -320,7 +320,7 @@
 const CAT = {
   ayalon: { color: '#344AC1', label: 'נתיבי איילון' },
   nta:    { color: '#00B8F5', label: 'נת״ע' },
-  moved:  { color: '#E4572E', label: 'הועברו: נתיבי איילון ← נת״ע' },
+  moved:  { color: '#E4572E', label: 'עשויים לעבור: נתיבי איילון ← נת״ע' },
   none:   { color: '#9aa1b0', label: 'רשות תמרור אחרת' }
 };
 const LRT_COLORS = { 'Red Line': '#D32F2F', 'Purple Line': '#8E24AA', 'Green Line': '#2E7D32' };
@@ -538,12 +538,12 @@ function pointPopup(p, cat) {
 
 const markers = TRAFFIC_LIGHTS.map(p => {
   const m = L.circleMarker([p.lat, p.lon], {
-    radius: 5, weight: 1.3, color: '#ffffff', fillColor: CAT.none.color, fillOpacity: 1
+    radius: 7, weight: 1.3, color: '#ffffff', fillColor: CAT.none.color, fillOpacity: 1
   });
   m.bindTooltip(() => pointSnippet(p, categorize(p)), { className: 'snip', direction: 'top', offset: [0, -8] });
   m.bindPopup(() => pointPopup(p, categorize(p)), { maxWidth: 330, closeButton: true });
-  m.on('mouseover', () => m.setStyle({ radius: 8, weight: 2 }));
-  m.on('mouseout',  () => m.setStyle({ radius: 5, weight: 1.3 }));
+  m.on('mouseover', () => m.setStyle({ radius: 10, weight: 2 }));
+  m.on('mouseout',  () => m.setStyle({ radius: 7, weight: 1.3 }));
   m._data = p;
   return m;
 });
@@ -588,7 +588,7 @@ function apply() {
     document.getElementById('flow').innerHTML =
       'מצב אפשרי — לפי עמודת רשות התמרור לנתיבי איילון <b>' + fmt(initialAyalon) + '</b> רמזורים; ' +
       '<span class="mv">' + fmt(counts.moved) + '</span> מהם נופלים בחיצי הרק״ל/המטרו של נת״ע ' +
-      '(<b>' + fmt(viaLrt) + '</b> ברק״ל, <b>' + fmt(viaMetro) + '</b> במטרו) ולכן מועברים לנת״ע, ' +
+      '(<b>' + fmt(viaLrt) + '</b> ברק״ל, <b>' + fmt(viaMetro) + '</b> במטרו) ולכן עשויים לעבור לנת״ע, ' +
       'כך שלנתיבי איילון נותרים <b>' + fmt(counts.ayalon) + '</b> ונת״ע מגיעה ל־<b>' + fmt(ntaTotal) + '</b> (כולל <b>' + fmt(counts.nta) + '</b> שכבר רשומים תחת נת״ע).';
   }
 
@@ -598,7 +598,7 @@ function apply() {
     ['איילון (לפי עמודה)', initialAyalon, '#8fa0e6'],
     ['איילון (סופי)', counts.ayalon, CAT.ayalon.color],
     ['נת״ע (סה״כ)', ntaTotal, CAT.nta.color],
-    ['הועברו לנת״ע', counts.moved, CAT.moved.color],
+    ['עשויים לעבור לנת״ע', counts.moved, CAT.moved.color],
     ['רשות תמרור אחרת', counts.none, CAT.none.color]
   ];
   const max = Math.max(1, ...rows.map(r => r[1]));
@@ -635,7 +635,7 @@ function buildSummaryTable() {
     '<th>מצב אפשרי<span class="delta">חיץ רק״ל 100 מ׳ / מטרו 50 מ׳</span></th></tr>' +
     '<tr><td>נתיבי איילון</td><td>' + fmt(cur.ayalon) + '</td><td>' + fmt(pos.ayalon) + d(pos.ayalon - cur.ayalon) + '</td></tr>' +
     '<tr><td>נת״ע</td><td>' + fmt(cur.nta) + '</td><td>' + fmt(posNta) + d(posNta - cur.nta) + '</td></tr>' +
-    '<tr class="mv"><td>הועברו: נתיבי איילון ← נת״ע</td><td>—</td><td>' + fmt(pos.moved) + '</td></tr>' +
+    '<tr class="mv"><td>עשויים לעבור: נתיבי איילון ← נת״ע</td><td>—</td><td>' + fmt(pos.moved) + '</td></tr>' +
     '<tr><td>רשות תמרור אחרת</td><td>' + fmt(cur.none) + '</td><td>' + fmt(pos.none) + '</td></tr>' +
     '<tr class="tot"><td>סה״כ רמזורים</td><td>' + fmt(total) + '</td><td>' + fmt(total) + '</td></tr>';
 
@@ -654,8 +654,8 @@ function buildSummaryTable() {
     const cities = [...new Set(moved.map(p => p.city).filter(Boolean))];
     const parts = [];
     parts.push(cities.length === 1
-      ? 'כל ' + fmt(moved.length) + ' הרמזורים המועברים מרוכזים בעיר אחת — ' + esc(cities[0])
-      : fmt(moved.length) + ' הרמזורים המועברים פזורים ב־' + fmt(cities.length) + ' ערים (' + esc(cities.join(', ')) + ')');
+      ? 'כל ' + fmt(moved.length) + ' הרמזורים שעשויים לעבור מרוכזים בעיר אחת — ' + esc(cities[0])
+      : fmt(moved.length) + ' הרמזורים שעשויים לעבור פזורים ב־' + fmt(cities.length) + ' ערים (' + esc(cities.join(', ')) + ')');
     if (viaM.length) {
       const lines = [...new Set(viaM.map(p => p.nM).filter(Boolean))];
       const ds = viaM.map(p => p.dM);
