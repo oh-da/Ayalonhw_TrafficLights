@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Ayalon Highways × NTA — Traffic Light Assignment</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+<script src="assets/vendor/leaflet/leaflet.js"></script>
+<style>
+  :root{
+    --brand:#344AC1;
+    --brand-2:#00B8F5;
+    --moved:#E4572E;
+    --untagged:#9aa1b0;
+    --bg:#ffffff;
+    --ink:#16181d;
+    --muted:#6a7080;
+    --line:#e3e6ee;
+    --line-strong:#c9cfe0;
+    --tint:#f4f6fc;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:Calibri,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);color:var(--ink);
+    display:grid;grid-template-columns:380px 1fr;
+    overflow:hidden;
+  }
+  a{color:var(--brand);text-decoration:none}
+  a:hover{color:#26379a;text-decoration:underline}
+
+  /* ---------- sidebar ---------- */
+  aside{
+    border-inline-end:1px solid var(--line);
+    display:flex;flex-direction:column;min-height:0;background:var(--bg);
+  }
+  .head{padding:20px 22px 16px;border-bottom:1px solid var(--line)}
+  .kicker{font-size:12px;letter-spacing:.14em;color:var(--brand-2);font-weight:700;margin:0 0 6px;text-transform:uppercase}
+  h1{font-size:23px;line-height:1.15;margin:0;font-weight:700}
+  .sub{margin:8px 0 0;font-size:13.5px;color:var(--muted);line-height:1.45}
+
+  .block{padding:16px 22px;border-bottom:1px solid var(--line)}
+  .block-title{font-size:11.5px;letter-spacing:.12em;font-weight:700;color:var(--muted);margin:0 0 10px;text-transform:uppercase}
+
+  label.field{display:block}
+  select{
+    width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+    padding:9px 11px;border:1px solid var(--line-strong);border-radius:0;background:#fff;
+    appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--brand) 50%),linear-gradient(135deg,var(--brand) 50%,transparent 50%);
+    background-position:calc(100% - 17px) calc(50% - 2px),calc(100% - 12px) calc(50% - 2px);background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+  }
+  select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+  .slider-row{display:flex;align-items:center;gap:12px}
+  input[type=range]{flex:1;accent-color:var(--brand);height:22px;margin:0}
+  .slider-val{
+    font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;min-width:52px;
+    text-align:center;border:1px solid var(--line-strong);padding:5px 6px;background:#fff;
+  }
+  .slider-note{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.4}
+
+  .toggles{display:flex;flex-direction:column;gap:2px}
+  .toggle{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;
+    border:1px solid transparent;font-size:14.5px;
+  }
+  .toggle:hover{background:var(--tint);border-color:var(--line)}
+  .toggle input{appearance:none;width:16px;height:16px;border:1.5px solid var(--line-strong);background:#fff;margin:0;flex:none;cursor:pointer}
+  .toggle input:checked{background:var(--brand);border-color:var(--brand);box-shadow:inset 0 0 0 3px #fff}
+  .toggle .swatch{width:14px;height:14px;flex:none;margin-inline-start:auto}
+  .toggle .swatch.line-sw{height:4px}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+  .stat{background:#fff;padding:11px 13px}
+  .stat b{display:block;font-size:24px;font-weight:700;line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .stat span{display:block;font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.3}
+  .flow{
+    margin-top:12px;border:1px solid var(--line);background:var(--tint);
+    padding:10px 12px;font-size:13px;line-height:1.55;
+  }
+  .flow b{font-variant-numeric:tabular-nums}
+  .flow .mv{color:var(--moved);font-weight:700}
+  .bars{margin-top:14px;display:flex;flex-direction:column;gap:7px}
+  .bar{display:grid;grid-template-columns:110px 1fr 40px;align-items:center;gap:9px;font-size:12.5px}
+  .bar .track{height:6px;background:var(--tint);position:relative}
+  .bar .fill{position:absolute;inset-block:0;inset-inline-start:0;background:var(--brand)}
+  .bar em{font-style:normal;color:var(--muted);text-align:end;font-variant-numeric:tabular-nums}
+
+  .list-wrap{flex:1;min-height:0;display:flex;flex-direction:column}
+  .list-head{padding:14px 22px 10px;display:flex;align-items:baseline;justify-content:space-between}
+  .list{overflow:auto;padding:0 22px 22px}
+  .row{
+    padding:10px 12px;border:1px solid var(--line);margin-bottom:-1px;cursor:pointer;background:#fff;
+    display:grid;grid-template-columns:1fr auto;gap:3px 10px;
+  }
+  .row:hover{background:var(--tint);border-color:var(--brand);position:relative;z-index:1}
+  .row .t{font-size:13.5px;font-weight:700;line-height:1.3}
+  .row .m{font-size:12px;color:var(--muted);grid-column:1/-1}
+  .dot{width:9px;height:9px;margin-top:4px;border-radius:50%}
+  .empty{padding:24px 12px;color:var(--muted);font-size:14px;text-align:center;border:1px dashed var(--line-strong)}
+
+  /* ---------- map ---------- */
+  main{position:relative;min-width:0}
+  #map{position:absolute;inset:0;background:#eceef2}
+  .leaflet-tile-pane{filter:grayscale(1) brightness(1.06) contrast(.88)}
+  .leaflet-container{font-family:inherit}
+  .leaflet-control-zoom a{border-radius:0!important;color:var(--brand)!important}
+  .leaflet-control-attribution{font-size:10px}
+
+  .legend{
+    position:absolute;inset-block-end:22px;inset-inline-end:14px;z-index:500;
+    background:rgba(255,255,255,.94);border:1px solid var(--line-strong);padding:11px 13px;
+  }
+  .legend p{margin:0 0 8px;font-size:11px;letter-spacing:.1em;font-weight:700;color:var(--muted);text-transform:uppercase}
+  .legend ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+  .legend li{display:flex;align-items:center;gap:8px;font-size:13px}
+  .legend i{width:10px;height:10px;display:block;flex:none}
+  .legend i.round{border-radius:50%}
+  .legend i.line-i{height:4px}
+  .legend .sep{border-top:1px solid var(--line);margin:4px 0 2px}
+
+  /* tooltip (hover snippet) */
+  .leaflet-tooltip.snip{
+    background:#fff;border:1px solid var(--brand);border-radius:0;box-shadow:0 4px 14px rgba(22,24,29,.14);
+    padding:9px 11px;font-family:inherit;text-align:start;
+  }
+  .leaflet-tooltip.snip::before{display:none}
+  .snip .st{font-size:13.5px;font-weight:700;margin-bottom:5px;color:var(--brand)}
+  .snip dl{margin:0;display:grid;grid-template-columns:auto auto;gap:2px 10px;font-size:12.5px}
+  .snip dt{color:var(--muted)}
+  .snip dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* popup (detail) */
+  .leaflet-popup-content-wrapper{border-radius:0;box-shadow:0 10px 30px rgba(22,24,29,.2);border:1px solid var(--line-strong)}
+  .leaflet-popup-content{margin:0;width:300px!important;text-align:start;font-family:inherit}
+  .leaflet-popup-tip{border-radius:0}
+  .pop-h{background:var(--brand);color:#fff;padding:13px 15px}
+  .pop-h .id{font-size:11px;letter-spacing:.1em;opacity:.75;text-transform:uppercase}
+  .pop-h .n{font-size:16px;font-weight:700;line-height:1.25;margin-top:3px}
+  .pop-b{padding:13px 15px 15px}
+  .pop-b dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13.5px}
+  .pop-b dt{color:var(--muted)}
+  .pop-b dd{margin:0;font-weight:600;text-align:start}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:3px 8px;border:1px solid currentColor}
+  .chip i{width:8px;height:8px;background:currentColor;display:block}
+  .leaflet-container a.leaflet-popup-close-button{color:#fff}
+</style>
+</head>
+<body>
+<aside>
+  <div class="head">
+    <p class="kicker">GIS layers · Right of way &amp; traffic lights</p>
+    <h1>Ayalon Highways × NTA<br>Traffic Light Assignment</h1>
+    <p class="sub">Traffic lights are tagged by a buffer around each right-of-way layer — Ayalon Highways first, then NTA. Lights falling in both are removed from Ayalon and reassigned to NTA. Hover for a snippet, click for full details.</p>
+  </div>
+
+  <div class="block">
+    <p class="block-title">Buffer distance</p>
+    <div class="slider-row">
+      <input type="range" id="buffer" min="5" max="200" step="5" value="30">
+      <span class="slider-val" id="buffer-val">30 m</span>
+    </div>
+    <p class="slider-note">A light is tagged to a layer when it lies within this distance of the layer's right of way.</p>
+  </div>
+
+  <div class="block">
+    <p class="block-title">Filter by assignment</p>
+    <label class="field">
+      <select id="category">
+        <option value="all">All traffic lights</option>
+        <option value="ayalon">Ayalon Highways</option>
+        <option value="nta">NTA</option>
+        <option value="moved">Moved: Ayalon → NTA</option>
+        <option value="none">Not assigned</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="block">
+    <p class="block-title">Layers</p>
+    <div class="toggles">
+      <label class="toggle"><input type="checkbox" id="lyr-ayalon" checked>Ayalon Highways right of way<span class="swatch" style="background:rgba(52,74,193,.12);border:1px solid #344AC1"></span></label>
+      <label class="toggle"><input type="checkbox" id="lyr-nta" checked>NTA right of way<span class="swatch line-sw" style="background:#00B8F5"></span></label>
+      <label class="toggle"><input type="checkbox" id="lyr-pts" checked>Traffic lights<span class="swatch" style="background:#344AC1;border-radius:50%"></span></label>
+    </div>
+  </div>
+
+  <div class="block">
+    <p class="block-title">Assignment summary</p>
+    <div class="stats">
+      <div class="stat"><b id="s-ayalon" style="color:var(--brand)">—</b><span>Ayalon Highways (final)</span></div>
+      <div class="stat"><b id="s-nta" style="color:var(--brand-2)">—</b><span>NTA (total)</span></div>
+      <div class="stat"><b id="s-moved" style="color:var(--moved)">—</b><span>Moved Ayalon → NTA</span></div>
+      <div class="stat"><b id="s-none" style="color:var(--untagged)">—</b><span>Not assigned</span></div>
+    </div>
+    <div class="flow" id="flow"></div>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <div class="list-wrap">
+    <div class="list-head">
+      <p class="block-title" style="margin:0">Traffic lights</p>
+      <span id="list-note" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="list" id="list"></div>
+  </div>
+</aside>
+
+<main>
+  <div id="map"></div>
+  <div class="legend">
+    <p>Legend</p>
+    <ul>
+      <li><i style="background:rgba(52,74,193,.2);border:1px solid #344AC1"></i>Ayalon right of way</li>
+      <li><i class="line-i" style="background:#00B8F5"></i>NTA right of way</li>
+      <li class="sep" aria-hidden="true"></li>
+      <li><i class="round" style="background:#344AC1"></i>Ayalon Highways</li>
+      <li><i class="round" style="background:#00B8F5"></i>NTA</li>
+      <li><i class="round" style="background:#E4572E"></i>Moved Ayalon → NTA</li>
+      <li><i class="round" style="background:#9aa1b0"></i>Not assigned</li>
+    </ul>
+  </div>
+</main>
+
+<script src="assets/data/ayalon.js"></script>
+<script src="assets/data/nta.js"></script>
+<script src="assets/data/lights.js"></script>
+<script>
+const CAT = {
+  ayalon: { color: '#344AC1', label: 'Ayalon Highways' },
+  nta:    { color: '#00B8F5', label: 'NTA' },
+  moved:  { color: '#E4572E', label: 'Moved: Ayalon → NTA' },
+  none:   { color: '#9aa1b0', label: 'Not assigned' }
+};
+const esc = s => String(s ?? '—').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const val = s => '<bdi>' + esc(s === '' ? '—' : s) + '</bdi>';
+
+let buffer = 30, category = 'all';
+
+/* Assignment logic — order matters (per project goal):
+   1. tag lights within the buffer of the Ayalon right of way,
+   2. tag lights within the buffer of the NTA right of way; lights tagged in
+      BOTH are removed from Ayalon and counted as moved to NTA. */
+function categorize(p) {
+  const inA = p.dA !== null && p.dA <= buffer;
+  const inN = p.dN !== null && p.dN <= buffer;
+  if (inA && inN) return 'moved';
+  if (inN) return 'nta';
+  if (inA) return 'ayalon';
+  return 'none';
+}
+
+const map = L.map('map', { zoomControl: false, minZoom: 6, maxZoom: 18 });
+L.control.zoom({ position: 'topleft' }).addTo(map);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors · Right of way &amp; traffic lights: Israel Ministry of Transport / Ayalon Highways',
+  maxZoom: 19
+}).addTo(map);
+
+const ayalonLayer = L.layerGroup().addTo(map);
+const ntaLayer = L.layerGroup().addTo(map);
+const ptsLayer = L.layerGroup().addTo(map);
+
+/* ---------- Ayalon right-of-way polygons ---------- */
+const ayalonStyle = { color: '#344AC1', weight: 1.4, opacity: .9, fillColor: '#344AC1', fillOpacity: .10 };
+const ayalonGeo = L.geoJSON(AYALON_GEOJSON, {
+  style: ayalonStyle,
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindTooltip(() =>
+      '<div class="st">' + val(p.roadName) + '</div><dl>' +
+      '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
+      '<dt>Last Updated</dt><dd>' + val(p.updated) + '</dd></dl>',
+      { sticky: true, className: 'snip', direction: 'top', offset: [0, -6] });
+    layer.on('mouseover', () => layer.setStyle({ weight: 2.4, fillOpacity: .18 }));
+    layer.on('mouseout',  () => layer.setStyle(ayalonStyle));
+    layer.on('click', e => {
+      map.openPopup(
+        '<div class="pop-h"><div class="id">Ayalon Highways · Right of way</div><div class="n">' + val(p.roadName) + '</div></div>' +
+        '<div class="pop-b"><dl>' +
+        '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
+        '<dt>Road Name</dt><dd>' + val(p.roadName) + '</dd>' +
+        '<dt>Source</dt><dd>' + val(p.source) + '</dd>' +
+        '<dt>Last Updated</dt><dd>' + val(p.updated) + '</dd>' +
+        '</dl></div>', e.latlng, { maxWidth: 330 });
+    });
+  }
+});
+ayalonLayer.addLayer(ayalonGeo);
+
+/* ---------- NTA right-of-way lines ---------- */
+const ntaStyle = { color: '#00B8F5', weight: 2.4, opacity: .85 };
+const ntaGeo = L.geoJSON(NTA_GEOJSON, {
+  style: ntaStyle,
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindTooltip(() =>
+      '<div class="st" style="color:#0090c0">NTA · ' + val(p.roadName || ('Road ' + p.roadNumber)) + '</div><dl>' +
+      '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
+      '<dt>Road Number</dt><dd>' + val(p.roadNumber) + '</dd></dl>',
+      { sticky: true, className: 'snip', direction: 'top', offset: [0, -6] });
+    layer.on('mouseover', () => layer.setStyle({ weight: 4.5, opacity: 1 }));
+    layer.on('mouseout',  () => layer.setStyle(ntaStyle));
+    layer.on('click', e => {
+      map.openPopup(
+        '<div class="pop-h" style="background:#0090c0"><div class="id">NTA · Right of way</div><div class="n">' + val(p.roadName || ('Road ' + p.roadNumber)) + '</div></div>' +
+        '<div class="pop-b"><dl>' +
+        '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
+        '<dt>Road Name</dt><dd>' + val(p.roadName) + '</dd>' +
+        '<dt>Road Number</dt><dd>' + val(p.roadNumber) + '</dd>' +
+        '<dt>Source</dt><dd>' + val(p.source) + '</dd>' +
+        '<dt>Last Updated</dt><dd>' + val(p.updated) + '</dd>' +
+        '</dl></div>', e.latlng, { maxWidth: 330 });
+    });
+  }
+});
+ntaLayer.addLayer(ntaGeo);
+
+/* ---------- traffic-light markers ---------- */
+function distText(d) { return d === null ? '> 1 km' : d.toFixed(0) + ' m'; }
+
+function pointSnippet(p, cat) {
+  return '<div class="st" style="color:' + CAT[cat].color + '">' + val(p.name || p.mainStreet) + '</div><dl>' +
+    '<dt>Assigned to</dt><dd>' + esc(CAT[cat].label) + '</dd>' +
+    '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
+    '<dt>City</dt><dd>' + val(p.city) + '</dd></dl>';
+}
+function pointPopup(p, cat) {
+  const c = CAT[cat].color;
+  const streets = p.streets.map((s, i) =>
+    '<dt>Street Name ' + (i + 1) + '</dt><dd>' + val(s) + '</dd>').join('');
+  return '<div class="pop-h" style="background:' + c + '"><div class="id">Traffic light · #' + esc(p.id) + '</div><div class="n">' + val(p.name || p.mainStreet) + '</div></div>' +
+    '<div class="pop-b"><dl>' +
+    '<dt>Assigned to</dt><dd><span class="chip" style="color:' + c + '"><i></i>' + esc(CAT[cat].label) + '</span></dd>' +
+    '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
+    '<dt>City</dt><dd>' + val(p.city) + '</dd>' +
+    '<dt>Status</dt><dd>' + val(p.status) + '</dd>' +
+    '<dt>Main Street</dt><dd>' + val(p.mainStreet) + '</dd>' +
+    streets +
+    '<dt>Dist. to Ayalon</dt><dd>' + distText(p.dA) + '</dd>' +
+    '<dt>Dist. to NTA</dt><dd>' + distText(p.dN) + '</dd>' +
+    '<dt>Source</dt><dd>' + val(p.source) + '</dd>' +
+    '<dt>Last Updated</dt><dd>' + val(p.updated) + '</dd>' +
+    '</dl></div>';
+}
+
+const markers = TRAFFIC_LIGHTS.map(p => {
+  const m = L.circleMarker([p.lat, p.lon], {
+    radius: 5, weight: 1.3, color: '#ffffff', fillColor: CAT.none.color, fillOpacity: 1
+  });
+  m.bindTooltip(() => pointSnippet(p, categorize(p)), { className: 'snip', direction: 'top', offset: [0, -8] });
+  m.bindPopup(() => pointPopup(p, categorize(p)), { maxWidth: 330, closeButton: true });
+  m.on('mouseover', () => m.setStyle({ radius: 8, weight: 2 }));
+  m.on('mouseout',  () => m.setStyle({ radius: 5, weight: 1.3 }));
+  m._data = p;
+  return m;
+});
+
+/* ---------- stats + list ---------- */
+function apply() {
+  const counts = { ayalon: 0, nta: 0, moved: 0, none: 0 };
+  const visible = [];
+
+  markers.forEach(m => {
+    const cat = categorize(m._data);
+    counts[cat]++;
+    m._cat = cat;
+    const show = category === 'all' || category === cat;
+    if (show) {
+      m.setStyle({ fillColor: CAT[cat].color });
+      if (!ptsLayer.hasLayer(m)) ptsLayer.addLayer(m);
+      visible.push(m._data);
+    } else if (ptsLayer.hasLayer(m)) {
+      ptsLayer.removeLayer(m);
+    }
+  });
+
+  const initialAyalon = counts.ayalon + counts.moved;
+  const ntaTotal = counts.nta + counts.moved;
+
+  document.getElementById('s-ayalon').textContent = counts.ayalon;
+  document.getElementById('s-nta').textContent = ntaTotal;
+  document.getElementById('s-moved').textContent = counts.moved;
+  document.getElementById('s-none').textContent = counts.none;
+
+  document.getElementById('flow').innerHTML =
+    'Ayalon Highways starts with <b>' + initialAyalon + '</b> tagged lights; ' +
+    '<span class="mv">' + counts.moved + '</span> also fall in the NTA buffer and are ' +
+    'reassigned, leaving <b>' + counts.ayalon + '</b> with Ayalon and bringing NTA to <b>' + ntaTotal + '</b>.';
+
+  const bars = document.getElementById('bars');
+  bars.innerHTML = '';
+  const rows = [
+    ['Ayalon (initial)', initialAyalon, '#8fa0e6'],
+    ['Ayalon (final)', counts.ayalon, CAT.ayalon.color],
+    ['NTA (total)', ntaTotal, CAT.nta.color],
+    ['Moved A → N', counts.moved, CAT.moved.color],
+    ['Not assigned', counts.none, CAT.none.color]
+  ];
+  const max = Math.max(1, ...rows.map(r => r[1]));
+  rows.forEach(([label, n, c]) => {
+    const el = document.createElement('div');
+    el.className = 'bar';
+    el.innerHTML = '<span>' + esc(label) + '</span><span class="track"><span class="fill" style="width:' +
+      (n / max * 100) + '%;background:' + c + '"></span></span><em>' + n + '</em>';
+    bars.appendChild(el);
+  });
+
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  document.getElementById('list-note').textContent = visible.length + ' shown';
+  if (!visible.length) {
+    list.innerHTML = '<div class="empty">No traffic lights match the current filter</div>';
+  } else {
+    visible.slice(0, 300).forEach(p => {
+      const cat = categorize(p);
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = '<span class="t">' + val(p.name || p.mainStreet) + '</span>' +
+        '<span class="dot" style="background:' + CAT[cat].color + '"></span>' +
+        '<span class="m">' + val(p.city) + ' · ' + val(p.authority) + ' · ' + esc(CAT[cat].label) + '</span>';
+      row.onclick = () => {
+        const m = markers.find(x => x._data === p);
+        map.flyTo([p.lat, p.lon], 15, { duration: .6 });
+        setTimeout(() => m.openPopup(), 650);
+      };
+      list.appendChild(row);
+    });
+    if (visible.length > 300) {
+      const more = document.createElement('div');
+      more.className = 'empty';
+      more.textContent = 'Showing first 300 of ' + visible.length;
+      list.appendChild(more);
+    }
+  }
+}
+
+/* ---------- wiring ---------- */
+document.getElementById('buffer').addEventListener('input', e => {
+  buffer = +e.target.value;
+  document.getElementById('buffer-val').textContent = buffer + ' m';
+  requestAnimationFrame(apply);
+});
+document.getElementById('category').addEventListener('change', e => { category = e.target.value; apply(); });
+document.getElementById('lyr-ayalon').addEventListener('change', e => {
+  e.target.checked ? ayalonLayer.addTo(map) : map.removeLayer(ayalonLayer);
+});
+document.getElementById('lyr-nta').addEventListener('change', e => {
+  e.target.checked ? ntaLayer.addTo(map) : map.removeLayer(ntaLayer);
+});
+document.getElementById('lyr-pts').addEventListener('change', e => {
+  e.target.checked ? ptsLayer.addTo(map) : map.removeLayer(ptsLayer);
+});
+
+map.fitBounds(ayalonGeo.getBounds().extend(ntaGeo.getBounds()), { padding: [24, 24] });
+apply();
+</script>
+</body>
+</html>
