@@ -88,19 +88,41 @@
   .bar .fill{position:absolute;inset-block:0;inset-inline-start:0;background:var(--brand)}
   .bar em{font-style:normal;color:var(--muted);text-align:end;font-variant-numeric:tabular-nums}
 
-  .list-wrap{flex:1 0 auto;display:flex;flex-direction:column}
-  .list{max-height:340px}
-  .list-head{padding:14px 22px 10px;display:flex;align-items:baseline;justify-content:space-between}
-  .list{overflow:auto;padding:0 22px 22px}
-  .row{
-    padding:10px 12px;border:1px solid var(--line);margin-bottom:-1px;cursor:pointer;background:#fff;
-    display:grid;grid-template-columns:1fr auto;gap:3px 10px;
+  .btn{
+    width:100%;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+    padding:11px 14px;border:1px solid var(--brand);background:var(--brand);color:#fff;
   }
-  .row:hover{background:var(--tint);border-color:var(--brand);position:relative;z-index:1}
-  .row .t{font-size:13.5px;font-weight:700;line-height:1.3}
-  .row .m{font-size:12px;color:var(--muted);grid-column:1/-1}
-  .dot{width:9px;height:9px;margin-top:4px;border-radius:50%}
-  .empty{padding:24px 12px;color:var(--muted);font-size:14px;text-align:center;border:1px dashed var(--line-strong)}
+  .btn:hover{background:#26379a;border-color:#26379a}
+
+  /* ---------- summary modal ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;z-index:2000;background:rgba(22,24,29,.45);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-backdrop[hidden]{display:none}
+  .modal{
+    background:#fff;border:1px solid var(--line-strong);box-shadow:0 18px 50px rgba(22,24,29,.3);
+    width:min(640px,100%);max-height:90vh;overflow:auto;direction:rtl;
+  }
+  .modal-h{
+    background:var(--brand);color:#fff;padding:14px 18px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .modal-h b{font-size:17px;font-weight:700}
+  .modal-h button{
+    border:0;background:transparent;color:#fff;font-size:22px;line-height:1;cursor:pointer;
+    padding:2px 6px;font-family:inherit;
+  }
+  .modal-b{padding:18px}
+  .cmp{width:100%;border-collapse:collapse;font-size:14.5px}
+  .cmp th,.cmp td{border:1px solid var(--line);padding:9px 12px;text-align:center}
+  .cmp th{background:var(--tint);font-size:13px;color:var(--muted);font-weight:700}
+  .cmp td:first-child,.cmp th:first-child{text-align:start;font-weight:700;color:var(--ink)}
+  .cmp td{font-variant-numeric:tabular-nums;font-weight:600}
+  .cmp tr.mv td{color:var(--moved)}
+  .cmp tr.tot td{background:var(--tint);font-weight:700}
+  .cmp .delta{font-size:12px;color:var(--muted);font-weight:400;display:block;margin-top:2px}
+  .modal-note{margin:14px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5}
 
   /* ---------- map ---------- */
   main{position:relative;min-width:0}
@@ -205,12 +227,8 @@
     <div class="bars" id="bars"></div>
   </div>
 
-  <div class="list-wrap">
-    <div class="list-head">
-      <p class="block-title" style="margin:0">רמזורים</p>
-      <span id="list-note" style="font-size:12px;color:var(--muted)"></span>
-    </div>
-    <div class="list" id="list"></div>
+  <div class="block" style="border-bottom:0">
+    <button class="btn" id="open-summary">סיכום — השוואת שני התרחישים</button>
   </div>
 </aside>
 
@@ -232,6 +250,19 @@
     </ul>
   </div>
 </main>
+
+<div class="modal-backdrop" id="summary-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="summary-title">
+    <div class="modal-h">
+      <b id="summary-title">סיכום — השוואת שני התרחישים</b>
+      <button id="close-summary" aria-label="סגירה">×</button>
+    </div>
+    <div class="modal-b">
+      <table class="cmp" id="cmp-table"></table>
+      <p class="modal-note">מצב קיים — שיוך לפי עמודת רשות התמרור בשכבת הרמזורים. מצב אפשרי — רמזור של נתיבי איילון הנופל בחיץ הרק״ל (100 מ׳) או המטרו (50 מ׳) של נת״ע מועבר לנת״ע.</p>
+    </div>
+  </div>
+</div>
 
 <script src="assets/data/ayalon.js"></script>
 <script src="assets/data/nta.js"></script>
@@ -473,7 +504,6 @@ const markers = TRAFFIC_LIGHTS.map(p => {
 /* ---------- stats + list ---------- */
 function apply() {
   const counts = { ayalon: 0, nta: 0, moved: 0, none: 0 };
-  const visible = [];
 
   markers.forEach(m => {
     const cat = categorize(m._data);
@@ -483,7 +513,6 @@ function apply() {
     if (show) {
       m.setStyle({ fillColor: CAT[cat].color });
       if (!ptsLayer.hasLayer(m)) ptsLayer.addLayer(m);
-      visible.push(m._data);
     } else if (ptsLayer.hasLayer(m)) {
       ptsLayer.removeLayer(m);
     }
@@ -534,34 +563,44 @@ function apply() {
     bars.appendChild(el);
   });
 
-  const list = document.getElementById('list');
-  list.innerHTML = '';
-  document.getElementById('list-note').textContent = visible.length + ' מוצגים';
-  if (!visible.length) {
-    list.innerHTML = '<div class="empty">אין רמזורים התואמים את הסינון הנוכחי</div>';
-  } else {
-    visible.slice(0, 300).forEach(p => {
-      const cat = categorize(p);
-      const row = document.createElement('div');
-      row.className = 'row';
-      row.innerHTML = '<span class="t">' + val(p.name || p.mainStreet) + '</span>' +
-        '<span class="dot" style="background:' + CAT[cat].color + '"></span>' +
-        '<span class="m">' + val(p.city) + ' · ' + val(p.authority) + ' · ' + esc(CAT[cat].label) + '</span>';
-      row.onclick = () => {
-        const m = markers.find(x => x._data === p);
-        map.flyTo([p.lat, p.lon], 15, { duration: .6 });
-        setTimeout(() => m.openPopup(), 650);
-      };
-      list.appendChild(row);
-    });
-    if (visible.length > 300) {
-      const more = document.createElement('div');
-      more.className = 'empty';
-      more.textContent = 'מוצגים 300 הראשונים מתוך ' + visible.length;
-      list.appendChild(more);
-    }
-  }
 }
+
+/* ---------- scenario-comparison summary (floating popup) ---------- */
+function scenarioCounts(mode) {
+  const c = { ayalon: 0, nta: 0, moved: 0, none: 0 };
+  TRAFFIC_LIGHTS.forEach(p => {
+    if (p.authority === 'נתיבי איילון') {
+      c[(mode === 'possible' && inNtaInfra(p)) ? 'moved' : 'ayalon']++;
+    } else if (p.authority === 'נתע') c.nta++;
+    else c.none++;
+  });
+  return c;
+}
+
+function buildSummaryTable() {
+  const cur = scenarioCounts('current');
+  const pos = scenarioCounts('possible');
+  const posNta = pos.nta + pos.moved;
+  const total = cur.ayalon + cur.nta + cur.none;
+  const d = n => n === 0 ? '' : '<span class="delta">' + (n > 0 ? '+' : '−') + Math.abs(n) + '</span>';
+  document.getElementById('cmp-table').innerHTML =
+    '<tr><th>שיוך</th><th>מצב קיים<span class="delta">לפי עמודת רשות התמרור</span></th>' +
+    '<th>מצב אפשרי<span class="delta">חיץ רק״ל 100 מ׳ / מטרו 50 מ׳</span></th></tr>' +
+    '<tr><td>נתיבי איילון</td><td>' + cur.ayalon + '</td><td>' + pos.ayalon + d(pos.ayalon - cur.ayalon) + '</td></tr>' +
+    '<tr><td>נת״ע</td><td>' + cur.nta + '</td><td>' + posNta + d(posNta - cur.nta) + '</td></tr>' +
+    '<tr class="mv"><td>הועברו: נתיבי איילון ← נת״ע</td><td>—</td><td>' + pos.moved + '</td></tr>' +
+    '<tr><td>רשות תמרור אחרת</td><td>' + cur.none + '</td><td>' + pos.none + '</td></tr>' +
+    '<tr class="tot"><td>סה״כ רמזורים</td><td>' + total + '</td><td>' + total + '</td></tr>';
+}
+
+const summaryModal = document.getElementById('summary-modal');
+document.getElementById('open-summary').addEventListener('click', () => {
+  buildSummaryTable();
+  summaryModal.hidden = false;
+});
+document.getElementById('close-summary').addEventListener('click', () => { summaryModal.hidden = true; });
+summaryModal.addEventListener('click', e => { if (e.target === summaryModal) summaryModal.hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') summaryModal.hidden = true; });
 
 /* ---------- wiring ---------- */
 document.getElementById('scenario').addEventListener('change', e => {
