@@ -21,7 +21,9 @@ import json
 import math
 import os
 
-from shapely.geometry import shape
+import shapefile
+from pyproj import Transformer
+from shapely.geometry import Point, shape
 from shapely.ops import transform, unary_union
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,6 +33,19 @@ OUT = os.path.join(ROOT, "assets", "data")
 AYALON_SRC = os.path.join(DATA, "נתיבי איילון.geojson")
 NTA_SRC = os.path.join(DATA, "רשויות תמרור אחרות.geojson")
 LIGHTS_SRC = os.path.join(DATA, "רמזורים במטרופולין.geojson")
+
+# NTA infrastructure shapefiles (Israel TM Grid, EPSG:2039 — units are meters).
+LRT_SRC = os.path.join(DATA, "lrt_line", "LRT_LINE")
+METRO_SRC = os.path.join(DATA, "metro_line", "METRO_LINE")
+DEPO_SRC = os.path.join(DATA, "depo_metro", "DEPO_METRO")
+
+# Fixed buffer sizes around the NTA infrastructure shapes.
+LRT_BUFFER_M = 250.0
+METRO_BUFFER_M = 250.0
+DEPO_BUFFER_M = 500.0
+
+# LRT filter: NTA-operated lines only.
+LRT_LINES = ["Red Line", "Purple Line", "Green Line"]
 
 # Distances beyond this are irrelevant for any sensible buffer.
 MAX_DIST_M = 1000.0
@@ -108,10 +123,75 @@ def geom_display(geom, tolerance_m, project_inv_scale):
     return round_coords(json.loads(json.dumps(simplified.__geo_interface__)))
 
 
+def read_shp(path):
+    """Read a shapefile as (record dict, shapely geometry) pairs."""
+    r = shapefile.Reader(path, encoding="utf-8")
+    fields = [f[0] for f in r.fields[1:]]
+    return [({k: sr.record[k] for k in fields}, shape(sr.shape.__geo_interface__))
+            for sr in r.iterShapeRecords()]
+
+
 def main():
     ayalon = load(AYALON_SRC)
     others = load(NTA_SRC)
     lights = load(LIGHTS_SRC)
+
+    # --- NTA infrastructure layers (Israel TM Grid, meters) ------------------
+    tm_to_wgs = Transformer.from_crs(2039, 4326, always_xy=True)
+    wgs_to_tm = Transformer.from_crs(4326, 2039, always_xy=True)
+
+    def tm_geom_to_wgs(geom, simplify_m):
+        g = geom.simplify(simplify_m, preserve_topology=True)
+        g = transform(tm_to_wgs.transform, g)
+        return round_coords(json.loads(json.dumps(g.__geo_interface__)))
+
+    lrt = [(rec, g) for rec, g in read_shp(LRT_SRC)
+           if norm_value(rec.get("COMP")) == "נתע"
+           and clean(rec.get("LINE_EG")) in LRT_LINES]
+    metro = read_shp(METRO_SRC)  # no filter
+    depo = read_shp(DEPO_SRC)
+    print("LRT features after filter:", len(lrt))
+    print("Metro features:", len(metro))
+    print("Depo features:", len(depo))
+
+    def line_layer(pairs, key, props, buffer_m):
+        """Feature collections for a line layer + dissolved buffer per group."""
+        lines = {"type": "FeatureCollection", "features": [{
+            "type": "Feature",
+            "properties": {out: clean(rec.get(src)) for out, src in props.items()},
+            "geometry": tm_geom_to_wgs(g, 1.0),
+        } for rec, g in pairs]}
+        buffers = {"type": "FeatureCollection", "features": []}
+        for group in dict.fromkeys(clean(rec.get(key)) for rec, _ in pairs):
+            buf = unary_union([g.buffer(buffer_m) for rec, g in pairs
+                               if clean(rec.get(key)) == group])
+            buffers["features"].append({
+                "type": "Feature",
+                "properties": {"group": group},
+                "geometry": tm_geom_to_wgs(buf, 5.0),
+            })
+        return {"lines": lines, "buffers": buffers, "bufferM": buffer_m}
+
+    write_js("lrt.js", "LRT_DATA", line_layer(
+        lrt, "LINE_EG",
+        {"name": "NAME", "status": "STATUS", "line": "LINE_EG"}, LRT_BUFFER_M))
+    write_js("metro.js", "METRO_DATA", line_layer(
+        metro, "NAME", {"name": "NAME"}, METRO_BUFFER_M))
+
+    depo_out = {"type": "FeatureCollection", "features": [], "bufferM": DEPO_BUFFER_M}
+    for rec, g in depo:
+        depo_out["features"].append({
+            "type": "Feature",
+            "properties": {"name": clean(rec.get("NAME")),
+                           "status": clean(rec.get("STATUS"))},
+            "geometry": tm_geom_to_wgs(g, 1.0),
+            "buffer": tm_geom_to_wgs(g.buffer(DEPO_BUFFER_M), 5.0),
+        })
+    write_js("depo.js", "DEPO_DATA", depo_out)
+
+    lrt_union = unary_union([g for _, g in lrt])
+    metro_union = unary_union([g for _, g in metro])
+    depo_union = unary_union([g for _, g in depo])
 
     # --- filter NTA features -------------------------------------------------
     nta_feats = [
@@ -141,6 +221,10 @@ def main():
         pt = transform(project, shape(f["geometry"]))
         d_a = ayalon_union.distance(pt)
         d_n = nta_union.distance(pt)
+        pt_tm = Point(*wgs_to_tm.transform(lon, lat))
+        d_l = lrt_union.distance(pt_tm)
+        d_m = metro_union.distance(pt_tm)
+        d_d = depo_union.distance(pt_tm)
         streets = [clean(p.get(k)) for k in ("stree_1", "stree_2", "street_3")]
         out_lights.append({
             "id": clean(p.get("OBJECTID")),
@@ -156,6 +240,9 @@ def main():
             "updated": clean(p.get("Date")),
             "dA": round(d_a, 1) if d_a <= MAX_DIST_M else None,
             "dN": round(d_n, 1) if d_n <= MAX_DIST_M else None,
+            "dL": round(d_l, 1) if d_l <= MAX_DIST_M else None,
+            "dM": round(d_m, 1) if d_m <= MAX_DIST_M else None,
+            "dD": round(d_d, 1) if d_d <= MAX_DIST_M else None,
         })
     write_js("lights.js", "TRAFFIC_LIGHTS", out_lights)
 
@@ -198,10 +285,23 @@ def main():
     buf = 30.0
     ay = [l for l in out_lights if l["authority"] == "נתיבי איילון"]
     nta = [l for l in out_lights if l["authority"] == "נתע"]
-    moved = [l for l in ay if l["dN"] is not None and l["dN"] <= buf]
-    print("--- summary @ %gm buffer ---" % buf)
+
+    def in_infra(l):
+        return ((l["dL"] is not None and l["dL"] <= LRT_BUFFER_M)
+                or (l["dM"] is not None and l["dM"] <= METRO_BUFFER_M)
+                or (l["dD"] is not None and l["dD"] <= DEPO_BUFFER_M))
+
+    moved = [l for l in ay
+             if (l["dN"] is not None and l["dN"] <= buf) or in_infra(l)]
+    print("--- summary @ %gm right-of-way buffer + fixed infra buffers ---" % buf)
     print("Ayalon (authority column): %d" % len(ay))
     print("moved Ayalon -> NTA:       %d" % len(moved))
+    print("  via LRT %gm buffer:      %d" % (LRT_BUFFER_M, sum(
+        1 for l in moved if l["dL"] is not None and l["dL"] <= LRT_BUFFER_M)))
+    print("  via Metro %gm buffer:    %d" % (METRO_BUFFER_M, sum(
+        1 for l in moved if l["dM"] is not None and l["dM"] <= METRO_BUFFER_M)))
+    print("  via Depo %gm buffer:     %d" % (DEPO_BUFFER_M, sum(
+        1 for l in moved if l["dD"] is not None and l["dD"] <= DEPO_BUFFER_M)))
     print("Ayalon (final):            %d" % (len(ay) - len(moved)))
     print("NTA (column + moved):      %d" % (len(nta) + len(moved)))
     print("other authority:           %d" % (len(out_lights) - len(ay) - len(nta)))
