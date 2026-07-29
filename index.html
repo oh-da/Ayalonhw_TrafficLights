@@ -36,7 +36,16 @@
     display:flex;flex-direction:column;min-height:0;background:var(--bg);
     overflow-y:auto;
   }
-  .head{padding:20px 22px 16px;border-bottom:1px solid var(--line)}
+  .head{padding:20px 22px 16px;border-bottom:1px solid var(--line);position:relative}
+  .info-btn{
+    position:absolute;inset-block-start:16px;inset-inline-end:16px;
+    width:28px;height:28px;border-radius:50%;border:1.5px solid var(--brand);
+    background:#fff;color:var(--brand);font-family:Georgia,serif;font-style:italic;
+    font-weight:700;font-size:15px;line-height:1;cursor:pointer;
+  }
+  .info-btn:hover{background:var(--brand);color:#fff}
+  .src-list{margin:0;padding-inline-start:20px;font-size:14px;line-height:1.7}
+  .src-list li{margin-bottom:6px}
   .kicker{font-size:12px;letter-spacing:.06em;color:var(--brand-2);font-weight:700;margin:0 0 6px}
   h1{font-size:23px;line-height:1.15;margin:0;font-weight:700}
   .sub{margin:8px 0 0;font-size:13.5px;color:var(--muted);line-height:1.45}
@@ -187,6 +196,7 @@
 <body>
 <aside>
   <div class="head">
+    <button class="info-btn" id="open-sources" title="מקורות" aria-label="מקורות">i</button>
     <p class="kicker">שכבות GIS · זכויות דרך ורמזורים</p>
     <h1>נתיבי איילון × נת״ע<br>שיוך רמזורים</h1>
     <p class="sub">שני תרחישים: ״מצב קיים״ — שיוך לפי עמודת רשות התמרור בשכבת הרמזורים; ״מצב אפשרי״ — רמזור של נתיבי איילון הנופל בתוך חיץ הרק״ל (100 מ׳) או המטרו (50 מ׳) של נת״ע מסומן כ״הועבר: נתיבי איילון ← נת״ע״. ריחוף מציג תקציר, לחיצה מציגה את הפרטים המלאים.</p>
@@ -263,6 +273,25 @@
     </ul>
   </div>
 </main>
+
+<div class="modal-backdrop" id="sources-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sources-title">
+    <div class="modal-h">
+      <b id="sources-title">מקורות</b>
+      <button id="close-sources" aria-label="סגירה">×</button>
+    </div>
+    <div class="modal-b">
+      <ol class="src-list">
+        <li>שכבת רמזורים: אתר GIS פנימי של נתיבי איילון, השכבה נמשכה בתאריך 29/07/2026</li>
+        <li>שכבת רשות תמרור נתיבי איילון: אתר GIS פנימי של נתיבי איילון, השכבה נמשכה בתאריך 29/07/2026</li>
+        <li>שכבת רשות תמרור נת&quot;ע: אתר GIS פנימי של נתיבי איילון, שכבת רשויות תמרור אחרות, השכבה נמשכה בתאריך 29/07/2026</li>
+        <li>שכבת קווי רק&quot;ל: מערכת חצ&quot;ב, השכבה נמשכה בתאריך 29/07/2026</li>
+        <li>שכבת קווי מטרו: מערכת חצ&quot;ב, השכבה נמשכה בתאריך 29/07/2026</li>
+        <li>שכבת דיפו מטרו: מערכת חצ&quot;ב, השכבה נמשכה בתאריך 29/07/2026</li>
+      </ol>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop" id="summary-modal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="summary-title">
@@ -681,7 +710,15 @@ document.getElementById('open-summary').addEventListener('click', () => {
 });
 document.getElementById('close-summary').addEventListener('click', () => { summaryModal.hidden = true; });
 summaryModal.addEventListener('click', e => { if (e.target === summaryModal) summaryModal.hidden = true; });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') summaryModal.hidden = true; });
+
+const sourcesModal = document.getElementById('sources-modal');
+document.getElementById('open-sources').addEventListener('click', () => { sourcesModal.hidden = false; });
+document.getElementById('close-sources').addEventListener('click', () => { sourcesModal.hidden = true; });
+sourcesModal.addEventListener('click', e => { if (e.target === sourcesModal) sourcesModal.hidden = true; });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { summaryModal.hidden = true; sourcesModal.hidden = true; }
+});
 
 /* ---------- wiring ---------- */
 document.getElementById('scenario').addEventListener('change', e => {
