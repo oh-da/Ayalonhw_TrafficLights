@@ -123,6 +123,14 @@
   .cmp tr.tot td{background:var(--tint);font-weight:700}
   .cmp .delta{font-size:12px;color:var(--muted);font-weight:400;display:block;margin-top:2px}
   .modal-note{margin:14px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5}
+  .mv-row{
+    padding:10px 12px;border:1px solid var(--line);margin-bottom:-1px;cursor:pointer;background:#fff;
+    display:grid;grid-template-columns:1fr auto;gap:3px 10px;align-items:start;
+  }
+  .mv-row:hover{background:var(--tint);border-color:var(--moved);position:relative;z-index:1}
+  .mv-row .t{font-size:13.5px;font-weight:700;line-height:1.3}
+  .mv-row .m{font-size:12px;color:var(--muted);grid-column:1/-1}
+  .mv-row .dot{width:9px;height:9px;margin-top:4px;border-radius:50%;background:var(--moved)}
 
   /* ---------- map ---------- */
   main{position:relative;min-width:0}
@@ -260,6 +268,9 @@
     <div class="modal-b">
       <table class="cmp" id="cmp-table"></table>
       <p class="modal-note">מצב קיים — שיוך לפי עמודת רשות התמרור בשכבת הרמזורים. מצב אפשרי — רמזור של נתיבי איילון הנופל בחיץ הרק״ל (100 מ׳) או המטרו (50 מ׳) של נת״ע מועבר לנת״ע.</p>
+      <p class="block-title" style="margin:18px 0 8px">רמזורים שהועברו מנתיבי איילון לנת״ע <span id="moved-count" style="color:var(--moved)"></span></p>
+      <div id="moved-list"></div>
+      <p class="modal-note">לחיצה על רמזור ברשימה תסגור את החלון ותתמקד בו על המפה (בתרחיש ״מצב אפשרי״).</p>
     </div>
   </div>
 </div>
@@ -592,6 +603,39 @@ function buildSummaryTable() {
     '<tr class="mv"><td>הועברו: נתיבי איילון ← נת״ע</td><td>—</td><td>' + fmt(pos.moved) + '</td></tr>' +
     '<tr><td>רשות תמרור אחרת</td><td>' + fmt(cur.none) + '</td><td>' + fmt(pos.none) + '</td></tr>' +
     '<tr class="tot"><td>סה״כ רמזורים</td><td>' + fmt(total) + '</td><td>' + fmt(total) + '</td></tr>';
+
+  const moved = TRAFFIC_LIGHTS
+    .filter(p => p.authority === 'נתיבי איילון' && inNtaInfra(p))
+    .sort((a, b) => (a.city + a.name).localeCompare(b.city + b.name, 'he'));
+  document.getElementById('moved-count').textContent = '(' + fmt(moved.length) + ')';
+  const list = document.getElementById('moved-list');
+  list.innerHTML = '';
+  moved.forEach(p => {
+    const via = [];
+    if (p.dL !== null && p.dL <= LRT_DATA.bufferM) via.push('רק״ל · ' + p.dL.toFixed(0) + ' מ׳');
+    if (p.dM !== null && p.dM <= METRO_DATA.bufferM) via.push('מטרו · ' + p.dM.toFixed(0) + ' מ׳');
+    const row = document.createElement('div');
+    row.className = 'mv-row';
+    row.innerHTML = '<span class="t">' + val(p.name || p.mainStreet) + '</span>' +
+      '<span class="dot"></span>' +
+      '<span class="m">' + val(p.city) + ' · בחיץ: ' + esc(via.join(' , ')) + '</span>';
+    row.onclick = () => {
+      summaryModal.hidden = true;
+      if (scenario !== 'possible') {
+        scenario = 'possible';
+        document.getElementById('scenario').value = 'possible';
+      }
+      if (category !== 'all' && category !== 'moved') {
+        category = 'all';
+        document.getElementById('category').value = 'all';
+      }
+      apply();
+      const m = markers.find(x => x._data === p);
+      map.flyTo([p.lat, p.lon], 16, { duration: .6 });
+      setTimeout(() => m.openPopup(), 650);
+    };
+    list.appendChild(row);
+  });
 }
 
 const summaryModal = document.getElementById('summary-modal');
