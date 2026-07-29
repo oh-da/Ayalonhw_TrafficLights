@@ -1,0 +1,36 @@
+GOAL:
+an interactive html map, displaying the ayalonhw right of way layer, along with
+the NTA right of way layer and the metropolitan traffic lights layer.
+then, using a buffer around ayalonhw and NTA layers, tagging the traffic lights that are
+in ayalonhw layer and those in NTA layer, but in order:
+1. tagging ayalonhw first
+2. tagging NTA layer later, but with removing traffic lights from ayalonhw that are also in NTA layer. this way we can assess how many traffic lights were
+removed from ayalonhw and added to NTA.
+
+Layer names:
+ayalonhw right of way later: נתיבי איילון.geojson
+NTA right of way later: רשויות תמרור אחרות.geojson
+need to add a filter by column "רשות תמרור מקומית"="נתע"
+traffic lights layer: רמזורים במטרופויט.geojson
+
+Use this dictionary to translate columns from Hebrew to English:
+{"רשות תמרור מקומית": "Traffic Authority",
+"שם כביש": "Road Name",
+"מספר כביש": "Road Number",
+"מעודכן לתאריך": "Last Updated",
+"מקור": "Source",
+"שם רשות": "Traffic Authority",
+"מס' כביש": "Road Number",
+"רשות תמרור": "Traffic Authority",
+"עיר": "City",
+"סטטוס": "Status",
+"שם": "Name",
+"רחוב ראשי": "Main Street",
+"שם רחוב 1": "Street Name 1",
+"שם רחוב 2": "Street Name 2",
+"שם רחוב 3": "Street Name 3"}
+
+Use this dictionary to translate values to one common value:
+{'נת"א": 'נתיבי איילון',
+'נת"ע': "נתע",
+'NTA': 'נת"ע'}
