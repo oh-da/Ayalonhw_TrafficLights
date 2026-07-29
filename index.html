@@ -281,6 +281,7 @@ const LRT_COLORS = { 'Red Line': '#D32F2F', 'Purple Line': '#8E24AA', 'Green Lin
 const METRO_COLORS = { 'M1': '#1565C0', 'M2': '#EF6C00', 'M3': '#00838F' };
 const DEPO_COLOR = '#5D4037';
 const esc = s => String(s ?? '—').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = n => n.toLocaleString('en-US');
 const val = s => '<bdi>' + esc(s === '' ? '—' : s) + '</bdi>';
 
 let scenario = 'current', category = 'all';
@@ -521,10 +522,10 @@ function apply() {
   const initialAyalon = counts.ayalon + counts.moved;
   const ntaTotal = counts.nta + counts.moved;
 
-  document.getElementById('s-ayalon').textContent = counts.ayalon;
-  document.getElementById('s-nta').textContent = ntaTotal;
-  document.getElementById('s-moved').textContent = counts.moved;
-  document.getElementById('s-none').textContent = counts.none;
+  document.getElementById('s-ayalon').textContent = fmt(counts.ayalon);
+  document.getElementById('s-nta').textContent = fmt(ntaTotal);
+  document.getElementById('s-moved').textContent = fmt(counts.moved);
+  document.getElementById('s-none').textContent = fmt(counts.none);
 
   document.getElementById('scenario-note').textContent = scenario === 'current'
     ? 'שיוך הרמזורים כפי שהוא רשום היום בעמודת רשות התמרור של שכבת הרמזורים.'
@@ -532,17 +533,17 @@ function apply() {
 
   if (scenario === 'current') {
     document.getElementById('flow').innerHTML =
-      'מצב קיים — לפי עמודת רשות התמרור: לנתיבי איילון <b>' + counts.ayalon + '</b> רמזורים, ' +
-      'לנת״ע <b>' + counts.nta + '</b>, ולרשויות תמרור אחרות <b>' + counts.none + '</b>.';
+      'מצב קיים — לפי עמודת רשות התמרור: לנתיבי איילון <b>' + fmt(counts.ayalon) + '</b> רמזורים, ' +
+      'לנת״ע <b>' + fmt(counts.nta) + '</b>, ולרשויות תמרור אחרות <b>' + fmt(counts.none) + '</b>.';
   } else {
     const movedLights = markers.filter(m => m._cat === 'moved').map(m => m._data);
     const viaLrt = movedLights.filter(p => p.dL !== null && p.dL <= LRT_DATA.bufferM).length;
     const viaMetro = movedLights.filter(p => p.dM !== null && p.dM <= METRO_DATA.bufferM).length;
     document.getElementById('flow').innerHTML =
-      'מצב אפשרי — לפי עמודת רשות התמרור לנתיבי איילון <b>' + initialAyalon + '</b> רמזורים; ' +
-      '<span class="mv">' + counts.moved + '</span> מהם נופלים בחיצי הרק״ל/המטרו של נת״ע ' +
-      '(<b>' + viaLrt + '</b> ברק״ל, <b>' + viaMetro + '</b> במטרו) ולכן מועברים לנת״ע, ' +
-      'כך שלנתיבי איילון נותרים <b>' + counts.ayalon + '</b> ונת״ע מגיעה ל־<b>' + ntaTotal + '</b> (כולל <b>' + counts.nta + '</b> שכבר רשומים תחת נת״ע).';
+      'מצב אפשרי — לפי עמודת רשות התמרור לנתיבי איילון <b>' + fmt(initialAyalon) + '</b> רמזורים; ' +
+      '<span class="mv">' + fmt(counts.moved) + '</span> מהם נופלים בחיצי הרק״ל/המטרו של נת״ע ' +
+      '(<b>' + fmt(viaLrt) + '</b> ברק״ל, <b>' + fmt(viaMetro) + '</b> במטרו) ולכן מועברים לנת״ע, ' +
+      'כך שלנתיבי איילון נותרים <b>' + fmt(counts.ayalon) + '</b> ונת״ע מגיעה ל־<b>' + fmt(ntaTotal) + '</b> (כולל <b>' + fmt(counts.nta) + '</b> שכבר רשומים תחת נת״ע).';
   }
 
   const bars = document.getElementById('bars');
@@ -559,7 +560,7 @@ function apply() {
     const el = document.createElement('div');
     el.className = 'bar';
     el.innerHTML = '<span>' + esc(label) + '</span><span class="track"><span class="fill" style="width:' +
-      (n / max * 100) + '%;background:' + c + '"></span></span><em>' + n + '</em>';
+      (n / max * 100) + '%;background:' + c + '"></span></span><em>' + fmt(n) + '</em>';
     bars.appendChild(el);
   });
 
@@ -582,15 +583,15 @@ function buildSummaryTable() {
   const pos = scenarioCounts('possible');
   const posNta = pos.nta + pos.moved;
   const total = cur.ayalon + cur.nta + cur.none;
-  const d = n => n === 0 ? '' : '<span class="delta">' + (n > 0 ? '+' : '−') + Math.abs(n) + '</span>';
+  const d = n => n === 0 ? '' : '<span class="delta" dir="ltr">' + (n > 0 ? '+' : '−') + fmt(Math.abs(n)) + '</span>';
   document.getElementById('cmp-table').innerHTML =
     '<tr><th>שיוך</th><th>מצב קיים<span class="delta">לפי עמודת רשות התמרור</span></th>' +
     '<th>מצב אפשרי<span class="delta">חיץ רק״ל 100 מ׳ / מטרו 50 מ׳</span></th></tr>' +
-    '<tr><td>נתיבי איילון</td><td>' + cur.ayalon + '</td><td>' + pos.ayalon + d(pos.ayalon - cur.ayalon) + '</td></tr>' +
-    '<tr><td>נת״ע</td><td>' + cur.nta + '</td><td>' + posNta + d(posNta - cur.nta) + '</td></tr>' +
-    '<tr class="mv"><td>הועברו: נתיבי איילון ← נת״ע</td><td>—</td><td>' + pos.moved + '</td></tr>' +
-    '<tr><td>רשות תמרור אחרת</td><td>' + cur.none + '</td><td>' + pos.none + '</td></tr>' +
-    '<tr class="tot"><td>סה״כ רמזורים</td><td>' + total + '</td><td>' + total + '</td></tr>';
+    '<tr><td>נתיבי איילון</td><td>' + fmt(cur.ayalon) + '</td><td>' + fmt(pos.ayalon) + d(pos.ayalon - cur.ayalon) + '</td></tr>' +
+    '<tr><td>נת״ע</td><td>' + fmt(cur.nta) + '</td><td>' + fmt(posNta) + d(posNta - cur.nta) + '</td></tr>' +
+    '<tr class="mv"><td>הועברו: נתיבי איילון ← נת״ע</td><td>—</td><td>' + fmt(pos.moved) + '</td></tr>' +
+    '<tr><td>רשות תמרור אחרת</td><td>' + fmt(cur.none) + '</td><td>' + fmt(pos.none) + '</td></tr>' +
+    '<tr class="tot"><td>סה״כ רמזורים</td><td>' + fmt(total) + '</td><td>' + fmt(total) + '</td></tr>';
 }
 
 const summaryModal = document.getElementById('summary-modal');
