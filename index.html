@@ -152,7 +152,7 @@
   <div class="head">
     <p class="kicker">שכבות GIS · זכויות דרך ורמזורים</p>
     <h1>נתיבי איילון × נת״ע<br>שיוך רמזורים</h1>
-    <p class="sub">הרמזורים מתויגים באמצעות חיץ סביב זכות הדרך של כל שכבה — תחילה נתיבי איילון ולאחר מכן נת״ע. רמזורים הנופלים בשתיהן מוסרים מנתיבי איילון ומשויכים מחדש לנת״ע. ריחוף מציג תקציר, לחיצה מציגה את הפרטים המלאים.</p>
+    <p class="sub">הרמזורים משויכים לפי עמודת רשות התמרור בשכבת הרמזורים — נתיבי איילון או נת״ע. רמזור של נתיבי איילון הנופל בתוך חיץ זכות הדרך של נת״ע עשוי להיות כעת בסמכותה, ולכן מסומן כ״הועבר: נתיבי איילון ← נת״ע״. ריחוף מציג תקציר, לחיצה מציגה את הפרטים המלאים.</p>
   </div>
 
   <div class="block">
@@ -161,7 +161,7 @@
       <input type="range" id="buffer" min="5" max="200" step="5" value="30">
       <span class="slider-val" id="buffer-val">30 מ׳</span>
     </div>
-    <p class="slider-note">רמזור מתויג לשכבה כאשר הוא נמצא בטווח מרחק זה מזכות הדרך של השכבה.</p>
+    <p class="slider-note">רמזור של נתיבי איילון הנמצא בטווח מרחק זה מזכות הדרך של נת״ע מסומן כ״הועבר לנת״ע״.</p>
   </div>
 
   <div class="block">
@@ -172,7 +172,7 @@
         <option value="ayalon">נתיבי איילון</option>
         <option value="nta">נת״ע</option>
         <option value="moved">הועברו: נתיבי איילון ← נת״ע</option>
-        <option value="none">ללא שיוך</option>
+        <option value="none">רשות תמרור אחרת</option>
       </select>
     </label>
   </div>
@@ -192,7 +192,7 @@
       <div class="stat"><b id="s-ayalon" style="color:var(--brand)">—</b><span>נתיבי איילון (סופי)</span></div>
       <div class="stat"><b id="s-nta" style="color:var(--brand-2)">—</b><span>נת״ע (סה״כ)</span></div>
       <div class="stat"><b id="s-moved" style="color:var(--moved)">—</b><span>הועברו מאיילון לנת״ע</span></div>
-      <div class="stat"><b id="s-none" style="color:var(--untagged)">—</b><span>ללא שיוך</span></div>
+      <div class="stat"><b id="s-none" style="color:var(--untagged)">—</b><span>רשות תמרור אחרת</span></div>
     </div>
     <div class="flow" id="flow"></div>
     <div class="bars" id="bars"></div>
@@ -218,7 +218,7 @@
       <li><i class="round" style="background:#344AC1"></i>נתיבי איילון</li>
       <li><i class="round" style="background:#00B8F5"></i>נת״ע</li>
       <li><i class="round" style="background:#E4572E"></i>הועברו לנת״ע</li>
-      <li><i class="round" style="background:#9aa1b0"></i>ללא שיוך</li>
+      <li><i class="round" style="background:#9aa1b0"></i>רשות תמרור אחרת</li>
     </ul>
   </div>
 </main>
@@ -231,23 +231,23 @@ const CAT = {
   ayalon: { color: '#344AC1', label: 'נתיבי איילון' },
   nta:    { color: '#00B8F5', label: 'נת״ע' },
   moved:  { color: '#E4572E', label: 'הועברו: נתיבי איילון ← נת״ע' },
-  none:   { color: '#9aa1b0', label: 'ללא שיוך' }
+  none:   { color: '#9aa1b0', label: 'רשות תמרור אחרת' }
 };
 const esc = s => String(s ?? '—').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const val = s => '<bdi>' + esc(s === '' ? '—' : s) + '</bdi>';
 
 let buffer = 30, category = 'all';
 
-/* Assignment logic — order matters (per project goal):
-   1. tag lights within the buffer of the Ayalon right of way,
-   2. tag lights within the buffer of the NTA right of way; lights tagged in
-      BOTH are removed from Ayalon and counted as moved to NTA. */
+/* Assignment logic — by the Traffic Authority column of the lights layer:
+   a light whose authority is Ayalon Highways or NTA is tagged accordingly.
+   An Ayalon light that also falls within the buffer of the NTA right of way
+   may now be under NTA's authority, so it is tagged as moved Ayalon -> NTA. */
 function categorize(p) {
-  const inA = p.dA !== null && p.dA <= buffer;
-  const inN = p.dN !== null && p.dN <= buffer;
-  if (inA && inN) return 'moved';
-  if (inN) return 'nta';
-  if (inA) return 'ayalon';
+  if (p.authority === 'נתיבי איילון') {
+    const inN = p.dN !== null && p.dN <= buffer;
+    return inN ? 'moved' : 'ayalon';
+  }
+  if (p.authority === 'נתע') return 'nta';
   return 'none';
 }
 
@@ -385,18 +385,18 @@ function apply() {
   document.getElementById('s-none').textContent = counts.none;
 
   document.getElementById('flow').innerHTML =
-    'נתיבי איילון מתחילה עם <b>' + initialAyalon + '</b> רמזורים מתויגים; ' +
-    '<span class="mv">' + counts.moved + '</span> מהם נופלים גם בחיץ של נת״ע ולכן ' +
-    'משויכים מחדש, כך שלנתיבי איילון נותרים <b>' + counts.ayalon + '</b> ונת״ע מגיעה ל־<b>' + ntaTotal + '</b>.';
+    'לפי עמודת רשות התמרור, לנתיבי איילון <b>' + initialAyalon + '</b> רמזורים; ' +
+    '<span class="mv">' + counts.moved + '</span> מהם נופלים בחיץ זכות הדרך של נת״ע ולכן ' +
+    'מסומנים כמועברים, כך שלנתיבי איילון נותרים <b>' + counts.ayalon + '</b> ונת״ע מגיעה ל־<b>' + ntaTotal + '</b> (כולל <b>' + counts.nta + '</b> שכבר רשומים תחת נת״ע).';
 
   const bars = document.getElementById('bars');
   bars.innerHTML = '';
   const rows = [
-    ['איילון (התחלתי)', initialAyalon, '#8fa0e6'],
+    ['איילון (לפי עמודה)', initialAyalon, '#8fa0e6'],
     ['איילון (סופי)', counts.ayalon, CAT.ayalon.color],
     ['נת״ע (סה״כ)', ntaTotal, CAT.nta.color],
     ['הועברו לנת״ע', counts.moved, CAT.moved.color],
-    ['ללא שיוך', counts.none, CAT.none.color]
+    ['רשות תמרור אחרת', counts.none, CAT.none.color]
   ];
   const max = Math.max(1, ...rows.map(r => r[1]));
   rows.forEach(([label, n, c]) => {

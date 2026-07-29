@@ -2,31 +2,33 @@
 
 An interactive HTML map that displays the **Ayalon Highways right-of-way layer**,
 the **NTA right-of-way layer**, and the **metropolitan traffic-lights layer**,
-and tags each traffic light to an authority using a buffer around the two
-right-of-way layers.
+and assigns each traffic light to an authority using the lights layer's own
+**Traffic Authority** column, plus a buffer around the NTA right of way to
+detect lights that moved from Ayalon Highways to NTA.
 
-## Tagging logic (in order)
+## Assignment logic
 
-1. Every traffic light within the buffer of the **Ayalon Highways** right of way
-   is tagged *Ayalon*.
-2. Every traffic light within the buffer of the **NTA** right of way is tagged
-   *NTA* — and lights already tagged *Ayalon* are **removed from Ayalon and
-   reassigned to NTA**.
+1. A traffic light whose **Traffic Authority** column is *Ayalon Highways*
+   (`נתיבי איילון`) is tagged *Ayalon*; one whose column is *NTA* (`נת"ע`) is
+   tagged *NTA*. All other authorities (municipalities, Netivei Israel, …) are
+   tagged *other authority*.
+2. An *Ayalon* light that falls within the buffer of the **NTA right of way**
+   may now be under NTA's authority, so it is tagged **moved Ayalon → NTA**.
 
-This makes it easy to assess how many traffic lights were removed from Ayalon
-Highways and added to NTA. The buffer distance is adjustable live in the app
+This makes it easy to assess how many traffic lights are moving from Ayalon
+Highways to NTA. The buffer distance is adjustable live in the app
 (5–200 m slider, default 30 m); all counts, colors, the list and the popups
 update instantly.
 
 ### Results by buffer distance
 
-| Buffer | Ayalon (initial) | Moved → NTA | Ayalon (final) | NTA (total) |
-|-------:|-----------------:|------------:|---------------:|------------:|
-|  10 m  |  96 | 0 |  96 | 111 |
-|  30 m  | 116 | 1 | 115 | 131 |
-|  50 m  | 131 | 4 | 127 | 135 |
-| 100 m  | 149 | 8 | 141 | 153 |
-| 200 m  | 184 | 11 | 173 | 191 |
+| Buffer | Ayalon (column) | Moved → NTA | Ayalon (final) | NTA (total) |
+|-------:|----------------:|------------:|---------------:|------------:|
+|  10 m  | 73 | 0 | 73 | 214 |
+|  30 m  | 73 | 0 | 73 | 214 |
+|  50 m  | 73 | 0 | 73 | 214 |
+| 100 m  | 73 | 1 | 72 | 215 |
+| 200 m  | 73 | 1 | 72 | 215 |
 
 ## Running
 
@@ -68,15 +70,15 @@ What it does:
   its field labels.
 - **Distance precomputation** — every traffic light gets its distance in meters
   to the Ayalon right-of-way polygons (0 if inside) and to the NTA right-of-way
-  lines, using a local equal-distance projection. The app compares these
-  distances to the chosen buffer, so re-tagging on slider change is instant and
-  needs no client-side geometry library.
+  lines, using a local equal-distance projection. The app compares the NTA
+  distance to the chosen buffer to detect moved lights, so re-tagging on slider
+  change is instant and needs no client-side geometry library.
 
 ## Map features
 
 - Layer toggles for the Ayalon polygons, NTA lines and traffic lights.
 - Buffer-distance slider with live re-tagging and an assignment summary
-  (Ayalon initial/final, moved Ayalon → NTA, NTA total, unassigned).
+  (Ayalon per column/final, moved Ayalon → NTA, NTA total, other authority).
 - Filter the lights by assignment category.
 - Hover any feature for a summary tooltip; click for a full detail card
   (including each light's distance to both right-of-way layers).
