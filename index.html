@@ -34,6 +34,7 @@
   aside{
     border-inline-end:1px solid var(--line);
     display:flex;flex-direction:column;min-height:0;background:var(--bg);
+    overflow-y:auto;
   }
   .head{padding:20px 22px 16px;border-bottom:1px solid var(--line)}
   .kicker{font-size:12px;letter-spacing:.06em;color:var(--brand-2);font-weight:700;margin:0 0 6px}
@@ -87,7 +88,8 @@
   .bar .fill{position:absolute;inset-block:0;inset-inline-start:0;background:var(--brand)}
   .bar em{font-style:normal;color:var(--muted);text-align:end;font-variant-numeric:tabular-nums}
 
-  .list-wrap{flex:1;min-height:0;display:flex;flex-direction:column}
+  .list-wrap{flex:1 0 auto;display:flex;flex-direction:column}
+  .list{max-height:340px}
   .list-head{padding:14px 22px 10px;display:flex;align-items:baseline;justify-content:space-between}
   .list{overflow:auto;padding:0 22px 22px}
   .row{
