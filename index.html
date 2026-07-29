@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>Ayalon Highways × NTA — Traffic Light Assignment</title>
+<title>נתיבי איילון × נת״ע — שיוך רמזורים</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
 <script src="assets/vendor/leaflet/leaflet.js"></script>
@@ -36,19 +36,19 @@
     display:flex;flex-direction:column;min-height:0;background:var(--bg);
   }
   .head{padding:20px 22px 16px;border-bottom:1px solid var(--line)}
-  .kicker{font-size:12px;letter-spacing:.14em;color:var(--brand-2);font-weight:700;margin:0 0 6px;text-transform:uppercase}
+  .kicker{font-size:12px;letter-spacing:.06em;color:var(--brand-2);font-weight:700;margin:0 0 6px}
   h1{font-size:23px;line-height:1.15;margin:0;font-weight:700}
   .sub{margin:8px 0 0;font-size:13.5px;color:var(--muted);line-height:1.45}
 
   .block{padding:16px 22px;border-bottom:1px solid var(--line)}
-  .block-title{font-size:11.5px;letter-spacing:.12em;font-weight:700;color:var(--muted);margin:0 0 10px;text-transform:uppercase}
+  .block-title{font-size:11.5px;letter-spacing:.05em;font-weight:700;color:var(--muted);margin:0 0 10px}
 
   label.field{display:block}
   select{
     width:100%;font-family:inherit;font-size:15px;color:var(--ink);
     padding:9px 11px;border:1px solid var(--line-strong);border-radius:0;background:#fff;
     appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--brand) 50%),linear-gradient(135deg,var(--brand) 50%,transparent 50%);
-    background-position:calc(100% - 17px) calc(50% - 2px),calc(100% - 12px) calc(50% - 2px);background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+    background-position:12px calc(50% - 2px),17px calc(50% - 2px);background-size:5px 5px,5px 5px;background-repeat:no-repeat;
   }
   select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
@@ -112,7 +112,7 @@
     position:absolute;inset-block-end:22px;inset-inline-end:14px;z-index:500;
     background:rgba(255,255,255,.94);border:1px solid var(--line-strong);padding:11px 13px;
   }
-  .legend p{margin:0 0 8px;font-size:11px;letter-spacing:.1em;font-weight:700;color:var(--muted);text-transform:uppercase}
+  .legend p{margin:0 0 8px;font-size:11px;letter-spacing:.05em;font-weight:700;color:var(--muted)}
   .legend ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
   .legend li{display:flex;align-items:center;gap:8px;font-size:13px}
   .legend i{width:10px;height:10px;display:block;flex:none}
@@ -123,7 +123,7 @@
   /* tooltip (hover snippet) */
   .leaflet-tooltip.snip{
     background:#fff;border:1px solid var(--brand);border-radius:0;box-shadow:0 4px 14px rgba(22,24,29,.14);
-    padding:9px 11px;font-family:inherit;text-align:start;
+    padding:9px 11px;font-family:inherit;text-align:start;direction:rtl;
   }
   .leaflet-tooltip.snip::before{display:none}
   .snip .st{font-size:13.5px;font-weight:700;margin-bottom:5px;color:var(--brand)}
@@ -133,10 +133,10 @@
 
   /* popup (detail) */
   .leaflet-popup-content-wrapper{border-radius:0;box-shadow:0 10px 30px rgba(22,24,29,.2);border:1px solid var(--line-strong)}
-  .leaflet-popup-content{margin:0;width:300px!important;text-align:start;font-family:inherit}
+  .leaflet-popup-content{margin:0;width:300px!important;text-align:start;font-family:inherit;direction:rtl}
   .leaflet-popup-tip{border-radius:0}
   .pop-h{background:var(--brand);color:#fff;padding:13px 15px}
-  .pop-h .id{font-size:11px;letter-spacing:.1em;opacity:.75;text-transform:uppercase}
+  .pop-h .id{font-size:11px;letter-spacing:.05em;opacity:.75}
   .pop-h .n{font-size:16px;font-weight:700;line-height:1.25;margin-top:3px}
   .pop-b{padding:13px 15px 15px}
   .pop-b dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13.5px}
@@ -150,49 +150,49 @@
 <body>
 <aside>
   <div class="head">
-    <p class="kicker">GIS layers · Right of way &amp; traffic lights</p>
-    <h1>Ayalon Highways × NTA<br>Traffic Light Assignment</h1>
-    <p class="sub">Traffic lights are tagged by a buffer around each right-of-way layer — Ayalon Highways first, then NTA. Lights falling in both are removed from Ayalon and reassigned to NTA. Hover for a snippet, click for full details.</p>
+    <p class="kicker">שכבות GIS · זכויות דרך ורמזורים</p>
+    <h1>נתיבי איילון × נת״ע<br>שיוך רמזורים</h1>
+    <p class="sub">הרמזורים מתויגים באמצעות חיץ סביב זכות הדרך של כל שכבה — תחילה נתיבי איילון ולאחר מכן נת״ע. רמזורים הנופלים בשתיהן מוסרים מנתיבי איילון ומשויכים מחדש לנת״ע. ריחוף מציג תקציר, לחיצה מציגה את הפרטים המלאים.</p>
   </div>
 
   <div class="block">
-    <p class="block-title">Buffer distance</p>
+    <p class="block-title">מרחק חיץ</p>
     <div class="slider-row">
       <input type="range" id="buffer" min="5" max="200" step="5" value="30">
-      <span class="slider-val" id="buffer-val">30 m</span>
+      <span class="slider-val" id="buffer-val">30 מ׳</span>
     </div>
-    <p class="slider-note">A light is tagged to a layer when it lies within this distance of the layer's right of way.</p>
+    <p class="slider-note">רמזור מתויג לשכבה כאשר הוא נמצא בטווח מרחק זה מזכות הדרך של השכבה.</p>
   </div>
 
   <div class="block">
-    <p class="block-title">Filter by assignment</p>
+    <p class="block-title">סינון לפי שיוך</p>
     <label class="field">
       <select id="category">
-        <option value="all">All traffic lights</option>
-        <option value="ayalon">Ayalon Highways</option>
-        <option value="nta">NTA</option>
-        <option value="moved">Moved: Ayalon → NTA</option>
-        <option value="none">Not assigned</option>
+        <option value="all">כל הרמזורים</option>
+        <option value="ayalon">נתיבי איילון</option>
+        <option value="nta">נת״ע</option>
+        <option value="moved">הועברו: נתיבי איילון ← נת״ע</option>
+        <option value="none">ללא שיוך</option>
       </select>
     </label>
   </div>
 
   <div class="block">
-    <p class="block-title">Layers</p>
+    <p class="block-title">שכבות</p>
     <div class="toggles">
-      <label class="toggle"><input type="checkbox" id="lyr-ayalon" checked>Ayalon Highways right of way<span class="swatch" style="background:rgba(52,74,193,.12);border:1px solid #344AC1"></span></label>
-      <label class="toggle"><input type="checkbox" id="lyr-nta" checked>NTA right of way<span class="swatch line-sw" style="background:#00B8F5"></span></label>
-      <label class="toggle"><input type="checkbox" id="lyr-pts" checked>Traffic lights<span class="swatch" style="background:#344AC1;border-radius:50%"></span></label>
+      <label class="toggle"><input type="checkbox" id="lyr-ayalon" checked>זכות דרך — נתיבי איילון<span class="swatch" style="background:rgba(52,74,193,.12);border:1px solid #344AC1"></span></label>
+      <label class="toggle"><input type="checkbox" id="lyr-nta" checked>זכות דרך — נת״ע<span class="swatch line-sw" style="background:#00B8F5"></span></label>
+      <label class="toggle"><input type="checkbox" id="lyr-pts" checked>רמזורים<span class="swatch" style="background:#344AC1;border-radius:50%"></span></label>
     </div>
   </div>
 
   <div class="block">
-    <p class="block-title">Assignment summary</p>
+    <p class="block-title">סיכום שיוך</p>
     <div class="stats">
-      <div class="stat"><b id="s-ayalon" style="color:var(--brand)">—</b><span>Ayalon Highways (final)</span></div>
-      <div class="stat"><b id="s-nta" style="color:var(--brand-2)">—</b><span>NTA (total)</span></div>
-      <div class="stat"><b id="s-moved" style="color:var(--moved)">—</b><span>Moved Ayalon → NTA</span></div>
-      <div class="stat"><b id="s-none" style="color:var(--untagged)">—</b><span>Not assigned</span></div>
+      <div class="stat"><b id="s-ayalon" style="color:var(--brand)">—</b><span>נתיבי איילון (סופי)</span></div>
+      <div class="stat"><b id="s-nta" style="color:var(--brand-2)">—</b><span>נת״ע (סה״כ)</span></div>
+      <div class="stat"><b id="s-moved" style="color:var(--moved)">—</b><span>הועברו מאיילון לנת״ע</span></div>
+      <div class="stat"><b id="s-none" style="color:var(--untagged)">—</b><span>ללא שיוך</span></div>
     </div>
     <div class="flow" id="flow"></div>
     <div class="bars" id="bars"></div>
@@ -200,7 +200,7 @@
 
   <div class="list-wrap">
     <div class="list-head">
-      <p class="block-title" style="margin:0">Traffic lights</p>
+      <p class="block-title" style="margin:0">רמזורים</p>
       <span id="list-note" style="font-size:12px;color:var(--muted)"></span>
     </div>
     <div class="list" id="list"></div>
@@ -210,15 +210,15 @@
 <main>
   <div id="map"></div>
   <div class="legend">
-    <p>Legend</p>
+    <p>מקרא</p>
     <ul>
-      <li><i style="background:rgba(52,74,193,.2);border:1px solid #344AC1"></i>Ayalon right of way</li>
-      <li><i class="line-i" style="background:#00B8F5"></i>NTA right of way</li>
+      <li><i style="background:rgba(52,74,193,.2);border:1px solid #344AC1"></i>זכות דרך — נתיבי איילון</li>
+      <li><i class="line-i" style="background:#00B8F5"></i>זכות דרך — נת״ע</li>
       <li class="sep" aria-hidden="true"></li>
-      <li><i class="round" style="background:#344AC1"></i>Ayalon Highways</li>
-      <li><i class="round" style="background:#00B8F5"></i>NTA</li>
-      <li><i class="round" style="background:#E4572E"></i>Moved Ayalon → NTA</li>
-      <li><i class="round" style="background:#9aa1b0"></i>Not assigned</li>
+      <li><i class="round" style="background:#344AC1"></i>נתיבי איילון</li>
+      <li><i class="round" style="background:#00B8F5"></i>נת״ע</li>
+      <li><i class="round" style="background:#E4572E"></i>הועברו לנת״ע</li>
+      <li><i class="round" style="background:#9aa1b0"></i>ללא שיוך</li>
     </ul>
   </div>
 </main>
@@ -228,10 +228,10 @@
 <script src="assets/data/lights.js"></script>
 <script>
 const CAT = {
-  ayalon: { color: '#344AC1', label: 'Ayalon Highways' },
-  nta:    { color: '#00B8F5', label: 'NTA' },
-  moved:  { color: '#E4572E', label: 'Moved: Ayalon → NTA' },
-  none:   { color: '#9aa1b0', label: 'Not assigned' }
+  ayalon: { color: '#344AC1', label: 'נתיבי איילון' },
+  nta:    { color: '#00B8F5', label: 'נת״ע' },
+  moved:  { color: '#E4572E', label: 'הועברו: נתיבי איילון ← נת״ע' },
+  none:   { color: '#9aa1b0', label: 'ללא שיוך' }
 };
 const esc = s => String(s ?? '—').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const val = s => '<bdi>' + esc(s === '' ? '—' : s) + '</bdi>';
@@ -252,9 +252,9 @@ function categorize(p) {
 }
 
 const map = L.map('map', { zoomControl: false, minZoom: 6, maxZoom: 18 });
-L.control.zoom({ position: 'topleft' }).addTo(map);
+L.control.zoom({ position: 'topright' }).addTo(map);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors · Right of way &amp; traffic lights: Israel Ministry of Transport / Ayalon Highways',
+  attribution: '© תורמי OpenStreetMap · זכויות דרך ורמזורים: משרד התחבורה / נתיבי איילון',
   maxZoom: 19
 }).addTo(map);
 
@@ -270,19 +270,19 @@ const ayalonGeo = L.geoJSON(AYALON_GEOJSON, {
     const p = f.properties;
     layer.bindTooltip(() =>
       '<div class="st">' + val(p.roadName) + '</div><dl>' +
-      '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
-      '<dt>Last Updated</dt><dd>' + val(p.updated) + '</dd></dl>',
+      '<dt>רשות תמרור</dt><dd>' + val(p.authority) + '</dd>' +
+      '<dt>עדכון אחרון</dt><dd>' + val(p.updated) + '</dd></dl>',
       { sticky: true, className: 'snip', direction: 'top', offset: [0, -6] });
     layer.on('mouseover', () => layer.setStyle({ weight: 2.4, fillOpacity: .18 }));
     layer.on('mouseout',  () => layer.setStyle(ayalonStyle));
     layer.on('click', e => {
       map.openPopup(
-        '<div class="pop-h"><div class="id">Ayalon Highways · Right of way</div><div class="n">' + val(p.roadName) + '</div></div>' +
+        '<div class="pop-h"><div class="id">נתיבי איילון · זכות דרך</div><div class="n">' + val(p.roadName) + '</div></div>' +
         '<div class="pop-b"><dl>' +
-        '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
-        '<dt>Road Name</dt><dd>' + val(p.roadName) + '</dd>' +
-        '<dt>Source</dt><dd>' + val(p.source) + '</dd>' +
-        '<dt>Last Updated</dt><dd>' + val(p.updated) + '</dd>' +
+        '<dt>רשות תמרור</dt><dd>' + val(p.authority) + '</dd>' +
+        '<dt>שם כביש</dt><dd>' + val(p.roadName) + '</dd>' +
+        '<dt>מקור</dt><dd>' + val(p.source) + '</dd>' +
+        '<dt>עדכון אחרון</dt><dd>' + val(p.updated) + '</dd>' +
         '</dl></div>', e.latlng, { maxWidth: 330 });
     });
   }
@@ -296,21 +296,21 @@ const ntaGeo = L.geoJSON(NTA_GEOJSON, {
   onEachFeature: (f, layer) => {
     const p = f.properties;
     layer.bindTooltip(() =>
-      '<div class="st" style="color:#0090c0">NTA · ' + val(p.roadName || ('Road ' + p.roadNumber)) + '</div><dl>' +
-      '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
-      '<dt>Road Number</dt><dd>' + val(p.roadNumber) + '</dd></dl>',
+      '<div class="st" style="color:#0090c0">נת״ע · ' + val(p.roadName || ('כביש ' + p.roadNumber)) + '</div><dl>' +
+      '<dt>רשות תמרור</dt><dd>' + val(p.authority) + '</dd>' +
+      '<dt>מספר כביש</dt><dd>' + val(p.roadNumber) + '</dd></dl>',
       { sticky: true, className: 'snip', direction: 'top', offset: [0, -6] });
     layer.on('mouseover', () => layer.setStyle({ weight: 4.5, opacity: 1 }));
     layer.on('mouseout',  () => layer.setStyle(ntaStyle));
     layer.on('click', e => {
       map.openPopup(
-        '<div class="pop-h" style="background:#0090c0"><div class="id">NTA · Right of way</div><div class="n">' + val(p.roadName || ('Road ' + p.roadNumber)) + '</div></div>' +
+        '<div class="pop-h" style="background:#0090c0"><div class="id">נת״ע · זכות דרך</div><div class="n">' + val(p.roadName || ('כביש ' + p.roadNumber)) + '</div></div>' +
         '<div class="pop-b"><dl>' +
-        '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
-        '<dt>Road Name</dt><dd>' + val(p.roadName) + '</dd>' +
-        '<dt>Road Number</dt><dd>' + val(p.roadNumber) + '</dd>' +
-        '<dt>Source</dt><dd>' + val(p.source) + '</dd>' +
-        '<dt>Last Updated</dt><dd>' + val(p.updated) + '</dd>' +
+        '<dt>רשות תמרור</dt><dd>' + val(p.authority) + '</dd>' +
+        '<dt>שם כביש</dt><dd>' + val(p.roadName) + '</dd>' +
+        '<dt>מספר כביש</dt><dd>' + val(p.roadNumber) + '</dd>' +
+        '<dt>מקור</dt><dd>' + val(p.source) + '</dd>' +
+        '<dt>עדכון אחרון</dt><dd>' + val(p.updated) + '</dd>' +
         '</dl></div>', e.latlng, { maxWidth: 330 });
     });
   }
@@ -318,30 +318,30 @@ const ntaGeo = L.geoJSON(NTA_GEOJSON, {
 ntaLayer.addLayer(ntaGeo);
 
 /* ---------- traffic-light markers ---------- */
-function distText(d) { return d === null ? '> 1 km' : d.toFixed(0) + ' m'; }
+function distText(d) { return d === null ? 'מעל 1 ק״מ' : d.toFixed(0) + ' מ׳'; }
 
 function pointSnippet(p, cat) {
   return '<div class="st" style="color:' + CAT[cat].color + '">' + val(p.name || p.mainStreet) + '</div><dl>' +
-    '<dt>Assigned to</dt><dd>' + esc(CAT[cat].label) + '</dd>' +
-    '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
-    '<dt>City</dt><dd>' + val(p.city) + '</dd></dl>';
+    '<dt>משויך אל</dt><dd>' + esc(CAT[cat].label) + '</dd>' +
+    '<dt>רשות תמרור</dt><dd>' + val(p.authority) + '</dd>' +
+    '<dt>עיר</dt><dd>' + val(p.city) + '</dd></dl>';
 }
 function pointPopup(p, cat) {
   const c = CAT[cat].color;
   const streets = p.streets.map((s, i) =>
-    '<dt>Street Name ' + (i + 1) + '</dt><dd>' + val(s) + '</dd>').join('');
-  return '<div class="pop-h" style="background:' + c + '"><div class="id">Traffic light · #' + esc(p.id) + '</div><div class="n">' + val(p.name || p.mainStreet) + '</div></div>' +
+    '<dt>שם רחוב ' + (i + 1) + '</dt><dd>' + val(s) + '</dd>').join('');
+  return '<div class="pop-h" style="background:' + c + '"><div class="id">רמזור · מס׳ ' + esc(p.id) + '</div><div class="n">' + val(p.name || p.mainStreet) + '</div></div>' +
     '<div class="pop-b"><dl>' +
-    '<dt>Assigned to</dt><dd><span class="chip" style="color:' + c + '"><i></i>' + esc(CAT[cat].label) + '</span></dd>' +
-    '<dt>Traffic Authority</dt><dd>' + val(p.authority) + '</dd>' +
-    '<dt>City</dt><dd>' + val(p.city) + '</dd>' +
-    '<dt>Status</dt><dd>' + val(p.status) + '</dd>' +
-    '<dt>Main Street</dt><dd>' + val(p.mainStreet) + '</dd>' +
+    '<dt>משויך אל</dt><dd><span class="chip" style="color:' + c + '"><i></i>' + esc(CAT[cat].label) + '</span></dd>' +
+    '<dt>רשות תמרור</dt><dd>' + val(p.authority) + '</dd>' +
+    '<dt>עיר</dt><dd>' + val(p.city) + '</dd>' +
+    '<dt>סטטוס</dt><dd>' + val(p.status) + '</dd>' +
+    '<dt>רחוב ראשי</dt><dd>' + val(p.mainStreet) + '</dd>' +
     streets +
-    '<dt>Dist. to Ayalon</dt><dd>' + distText(p.dA) + '</dd>' +
-    '<dt>Dist. to NTA</dt><dd>' + distText(p.dN) + '</dd>' +
-    '<dt>Source</dt><dd>' + val(p.source) + '</dd>' +
-    '<dt>Last Updated</dt><dd>' + val(p.updated) + '</dd>' +
+    '<dt>מרחק מנתיבי איילון</dt><dd>' + distText(p.dA) + '</dd>' +
+    '<dt>מרחק מנת״ע</dt><dd>' + distText(p.dN) + '</dd>' +
+    '<dt>מקור</dt><dd>' + val(p.source) + '</dd>' +
+    '<dt>עדכון אחרון</dt><dd>' + val(p.updated) + '</dd>' +
     '</dl></div>';
 }
 
@@ -385,18 +385,18 @@ function apply() {
   document.getElementById('s-none').textContent = counts.none;
 
   document.getElementById('flow').innerHTML =
-    'Ayalon Highways starts with <b>' + initialAyalon + '</b> tagged lights; ' +
-    '<span class="mv">' + counts.moved + '</span> also fall in the NTA buffer and are ' +
-    'reassigned, leaving <b>' + counts.ayalon + '</b> with Ayalon and bringing NTA to <b>' + ntaTotal + '</b>.';
+    'נתיבי איילון מתחילה עם <b>' + initialAyalon + '</b> רמזורים מתויגים; ' +
+    '<span class="mv">' + counts.moved + '</span> מהם נופלים גם בחיץ של נת״ע ולכן ' +
+    'משויכים מחדש, כך שלנתיבי איילון נותרים <b>' + counts.ayalon + '</b> ונת״ע מגיעה ל־<b>' + ntaTotal + '</b>.';
 
   const bars = document.getElementById('bars');
   bars.innerHTML = '';
   const rows = [
-    ['Ayalon (initial)', initialAyalon, '#8fa0e6'],
-    ['Ayalon (final)', counts.ayalon, CAT.ayalon.color],
-    ['NTA (total)', ntaTotal, CAT.nta.color],
-    ['Moved A → N', counts.moved, CAT.moved.color],
-    ['Not assigned', counts.none, CAT.none.color]
+    ['איילון (התחלתי)', initialAyalon, '#8fa0e6'],
+    ['איילון (סופי)', counts.ayalon, CAT.ayalon.color],
+    ['נת״ע (סה״כ)', ntaTotal, CAT.nta.color],
+    ['הועברו לנת״ע', counts.moved, CAT.moved.color],
+    ['ללא שיוך', counts.none, CAT.none.color]
   ];
   const max = Math.max(1, ...rows.map(r => r[1]));
   rows.forEach(([label, n, c]) => {
@@ -409,9 +409,9 @@ function apply() {
 
   const list = document.getElementById('list');
   list.innerHTML = '';
-  document.getElementById('list-note').textContent = visible.length + ' shown';
+  document.getElementById('list-note').textContent = visible.length + ' מוצגים';
   if (!visible.length) {
-    list.innerHTML = '<div class="empty">No traffic lights match the current filter</div>';
+    list.innerHTML = '<div class="empty">אין רמזורים התואמים את הסינון הנוכחי</div>';
   } else {
     visible.slice(0, 300).forEach(p => {
       const cat = categorize(p);
@@ -430,7 +430,7 @@ function apply() {
     if (visible.length > 300) {
       const more = document.createElement('div');
       more.className = 'empty';
-      more.textContent = 'Showing first 300 of ' + visible.length;
+      more.textContent = 'מוצגים 300 הראשונים מתוך ' + visible.length;
       list.appendChild(more);
     }
   }
@@ -439,7 +439,7 @@ function apply() {
 /* ---------- wiring ---------- */
 document.getElementById('buffer').addEventListener('input', e => {
   buffer = +e.target.value;
-  document.getElementById('buffer-val').textContent = buffer + ' m';
+  document.getElementById('buffer-val').textContent = buffer + ' מ׳';
   requestAnimationFrame(apply);
 });
 document.getElementById('category').addEventListener('change', e => { category = e.target.value; apply(); });
