@@ -1,0 +1,83 @@
+# Ayalon Highways × NTA — Traffic Light Assignment Map
+
+An interactive HTML map that displays the **Ayalon Highways right-of-way layer**,
+the **NTA right-of-way layer**, and the **metropolitan traffic-lights layer**,
+and tags each traffic light to an authority using a buffer around the two
+right-of-way layers.
+
+## Tagging logic (in order)
+
+1. Every traffic light within the buffer of the **Ayalon Highways** right of way
+   is tagged *Ayalon*.
+2. Every traffic light within the buffer of the **NTA** right of way is tagged
+   *NTA* — and lights already tagged *Ayalon* are **removed from Ayalon and
+   reassigned to NTA**.
+
+This makes it easy to assess how many traffic lights were removed from Ayalon
+Highways and added to NTA. The buffer distance is adjustable live in the app
+(5–200 m slider, default 30 m); all counts, colors, the list and the popups
+update instantly.
+
+### Results by buffer distance
+
+| Buffer | Ayalon (initial) | Moved → NTA | Ayalon (final) | NTA (total) |
+|-------:|-----------------:|------------:|---------------:|------------:|
+|  10 m  |  96 | 0 |  96 | 111 |
+|  30 m  | 116 | 1 | 115 | 131 |
+|  50 m  | 131 | 4 | 127 | 135 |
+| 100 m  | 149 | 8 | 141 | 153 |
+| 200 m  | 184 | 11 | 173 | 191 |
+
+## Running
+
+Open `index.html` in a browser — everything (Leaflet, data) is bundled locally,
+so no web server or build step is needed. Only the OpenStreetMap basemap tiles
+require internet access.
+
+## Project structure
+
+```
+index.html                  the interactive map (single page, Leaflet)
+assets/vendor/leaflet/      vendored Leaflet 1.9.4 (no CDN dependency)
+assets/data/                generated data files (JS globals)
+  ayalon.js                 Ayalon right-of-way polygons (display-simplified)
+  nta.js                    NTA right-of-way lines (filtered, display-simplified)
+  lights.js                 traffic lights + precomputed distances (m) to each layer
+scripts/prepare_data.py     regenerates assets/data/ from the source layers
+data/                       source layers (GeoJSON + CSV)
+design/                     the approved visual design
+```
+
+## Data pipeline (`scripts/prepare_data.py`)
+
+Requires Python 3 with `shapely` (`pip install shapely`). Run from anywhere:
+
+```
+python3 scripts/prepare_data.py
+```
+
+What it does:
+
+- **Filter** — the "other traffic authorities" layer (`רשויות תמרור אחרות.geojson`)
+  is filtered to NTA only (traffic authority = `נתע`, after value normalization).
+- **Value normalization** — authority spellings are unified to one common value:
+  `נת"א` / `נת''א` → `נתיבי איילון`, `NTA` → `נת"ע` → `נתע`.
+- **Column translation** — Hebrew source columns are translated to English
+  property names (Traffic Authority, Road Name, Road Number, City, Status,
+  Main Street, Street Name 1–3, Source, Last Updated), which the app uses as
+  its field labels.
+- **Distance precomputation** — every traffic light gets its distance in meters
+  to the Ayalon right-of-way polygons (0 if inside) and to the NTA right-of-way
+  lines, using a local equal-distance projection. The app compares these
+  distances to the chosen buffer, so re-tagging on slider change is instant and
+  needs no client-side geometry library.
+
+## Map features
+
+- Layer toggles for the Ayalon polygons, NTA lines and traffic lights.
+- Buffer-distance slider with live re-tagging and an assignment summary
+  (Ayalon initial/final, moved Ayalon → NTA, NTA total, unassigned).
+- Filter the lights by assignment category.
+- Hover any feature for a summary tooltip; click for a full detail card
+  (including each light's distance to both right-of-way layers).
+- Clickable light list that flies the map to the selected light.
