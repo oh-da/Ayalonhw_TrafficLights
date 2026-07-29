@@ -123,6 +123,11 @@
   .cmp tr.tot td{background:var(--tint);font-weight:700}
   .cmp .delta{font-size:12px;color:var(--muted);font-weight:400;display:block;margin-top:2px}
   .modal-note{margin:14px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5}
+  .insight{
+    margin:14px 0 0;border:1px solid var(--line);border-inline-start:3px solid var(--moved);
+    background:var(--tint);padding:11px 13px;font-size:13.5px;line-height:1.6;
+  }
+  .insight b{color:var(--moved)}
   .mv-row{
     padding:10px 12px;border:1px solid var(--line);margin-bottom:-1px;cursor:pointer;background:#fff;
     display:grid;grid-template-columns:1fr auto;gap:3px 10px;align-items:start;
@@ -268,6 +273,7 @@
     <div class="modal-b">
       <table class="cmp" id="cmp-table"></table>
       <p class="modal-note">מצב קיים — שיוך לפי עמודת רשות התמרור בשכבת הרמזורים. מצב אפשרי — רמזור של נתיבי איילון הנופל בחיץ הרק״ל (100 מ׳) או המטרו (50 מ׳) של נת״ע מועבר לנת״ע.</p>
+      <div class="insight"><b>ראוי לציון:</b> <span id="insight"></span></div>
       <p class="block-title" style="margin:18px 0 8px">רמזורים שהועברו מנתיבי איילון לנת״ע <span id="moved-count" style="color:var(--moved)"></span></p>
       <div id="moved-list"></div>
       <p class="modal-note">לחיצה על רמזור ברשימה תסגור את החלון ותתמקד בו על המפה (בתרחיש ״מצב אפשרי״).</p>
@@ -608,6 +614,36 @@ function buildSummaryTable() {
     .filter(p => p.authority === 'נתיבי איילון' && inNtaInfra(p))
     .sort((a, b) => (a.city + a.name).localeCompare(b.city + b.name, 'he'));
   document.getElementById('moved-count').textContent = '(' + fmt(moved.length) + ')';
+
+  // Short data-driven analysis of the moved lights.
+  const insight = document.getElementById('insight');
+  if (!moved.length) {
+    insight.textContent = 'אף רמזור של נתיבי איילון אינו נופל בחיצי הרק״ל או המטרו — אין העברות בתרחיש זה.';
+  } else {
+    const viaM = moved.filter(p => p.dM !== null && p.dM <= METRO_DATA.bufferM);
+    const viaL = moved.filter(p => p.dL !== null && p.dL <= LRT_DATA.bufferM);
+    const cities = [...new Set(moved.map(p => p.city).filter(Boolean))];
+    const parts = [];
+    parts.push(cities.length === 1
+      ? 'כל ' + fmt(moved.length) + ' הרמזורים המועברים מרוכזים בעיר אחת — ' + esc(cities[0])
+      : fmt(moved.length) + ' הרמזורים המועברים פזורים ב־' + fmt(cities.length) + ' ערים (' + esc(cities.join(', ')) + ')');
+    if (viaM.length) {
+      const lines = [...new Set(viaM.map(p => p.nM).filter(Boolean))];
+      const ds = viaM.map(p => p.dM);
+      parts.push((viaM.length === moved.length ? 'כולם' : fmt(viaM.length) + ' מהם') +
+        ' לאורך קו ' + esc(lines.join(', ')) + ' של המטרו, במרחק ' +
+        '<span dir="ltr">' + Math.min(...ds).toFixed(0) + '–' + Math.max(...ds).toFixed(0) + '</span>' +
+        ' מ׳ בלבד מהתוואי — כלומר ממש עליו, ולכן הם נלכדים גם בחיץ המצומצם של ' + METRO_DATA.bufferM + ' מ׳');
+    }
+    if (viaL.length) {
+      const lrtLines = [...new Set(viaL.map(p => p.nL).filter(Boolean))].map(l => LRT_HEB[l] || l);
+      parts.push((viaL.length === moved.length ? 'כולם' : fmt(viaL.length) + ' מהם') +
+        ' בחיץ הרק״ל (' + esc(lrtLines.join(', ')) + ')');
+    } else {
+      parts.push('חיץ הרק״ל (' + LRT_DATA.bufferM + ' מ׳) אינו מוסיף אף רמזור');
+    }
+    insight.innerHTML = parts.join('; ') + '.';
+  }
   const list = document.getElementById('moved-list');
   list.innerHTML = '';
   moved.forEach(p => {

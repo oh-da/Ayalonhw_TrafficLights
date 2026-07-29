@@ -193,6 +193,16 @@ def main():
     metro_union = unary_union([g for _, g in metro])
     depo_union = unary_union([g for _, g in depo])
 
+    # Per-group unions to name the nearest line for each light.
+    def group_unions(pairs, key):
+        by = {}
+        for rec, g in pairs:
+            by.setdefault(clean(rec.get(key)), []).append(g)
+        return {k: unary_union(v) for k, v in by.items()}
+
+    lrt_by_line = group_unions(lrt, "LINE_EG")
+    metro_by_name = group_unions(metro, "NAME")
+
     # --- filter NTA features -------------------------------------------------
     nta_feats = [
         f for f in others["features"]
@@ -243,6 +253,10 @@ def main():
             "dL": round(d_l, 1) if d_l <= MAX_DIST_M else None,
             "dM": round(d_m, 1) if d_m <= MAX_DIST_M else None,
             "dD": round(d_d, 1) if d_d <= MAX_DIST_M else None,
+            "nL": (min(lrt_by_line, key=lambda k: lrt_by_line[k].distance(pt_tm))
+                   if d_l <= MAX_DIST_M else None),
+            "nM": (min(metro_by_name, key=lambda k: metro_by_name[k].distance(pt_tm))
+                   if d_m <= MAX_DIST_M else None),
         })
     write_js("lights.js", "TRAFFIC_LIGHTS", out_lights)
 
