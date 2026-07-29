@@ -40,8 +40,8 @@ METRO_SRC = os.path.join(DATA, "metro_line", "METRO_LINE")
 DEPO_SRC = os.path.join(DATA, "depo_metro", "DEPO_METRO")
 
 # Fixed buffer sizes around the NTA infrastructure shapes.
-LRT_BUFFER_M = 250.0
-METRO_BUFFER_M = 250.0
+LRT_BUFFER_M = 100.0
+METRO_BUFFER_M = 50.0
 DEPO_BUFFER_M = 500.0
 
 # LRT filter: NTA-operated lines only.
@@ -281,30 +281,29 @@ def main():
         })
     write_js("nta.js", "NTA_GEOJSON", nta_out)
 
-    # --- sanity summary at the default 30 m buffer ---------------------------
-    buf = 30.0
+    # --- scenario summary ----------------------------------------------------
     ay = [l for l in out_lights if l["authority"] == "נתיבי איילון"]
     nta = [l for l in out_lights if l["authority"] == "נתע"]
 
     def in_infra(l):
+        """Inside the LRT or metro buffer (the "possible situation" trigger)."""
         return ((l["dL"] is not None and l["dL"] <= LRT_BUFFER_M)
-                or (l["dM"] is not None and l["dM"] <= METRO_BUFFER_M)
-                or (l["dD"] is not None and l["dD"] <= DEPO_BUFFER_M))
+                or (l["dM"] is not None and l["dM"] <= METRO_BUFFER_M))
 
-    moved = [l for l in ay
-             if (l["dN"] is not None and l["dN"] <= buf) or in_infra(l)]
-    print("--- summary @ %gm right-of-way buffer + fixed infra buffers ---" % buf)
-    print("Ayalon (authority column): %d" % len(ay))
-    print("moved Ayalon -> NTA:       %d" % len(moved))
-    print("  via LRT %gm buffer:      %d" % (LRT_BUFFER_M, sum(
-        1 for l in moved if l["dL"] is not None and l["dL"] <= LRT_BUFFER_M)))
-    print("  via Metro %gm buffer:    %d" % (METRO_BUFFER_M, sum(
-        1 for l in moved if l["dM"] is not None and l["dM"] <= METRO_BUFFER_M)))
-    print("  via Depo %gm buffer:     %d" % (DEPO_BUFFER_M, sum(
-        1 for l in moved if l["dD"] is not None and l["dD"] <= DEPO_BUFFER_M)))
-    print("Ayalon (final):            %d" % (len(ay) - len(moved)))
-    print("NTA (column + moved):      %d" % (len(nta) + len(moved)))
-    print("other authority:           %d" % (len(out_lights) - len(ay) - len(nta)))
+    moved = [l for l in ay if in_infra(l)]
+    print("--- current situation (traffic-authority column) ---")
+    print("Ayalon:          %d" % len(ay))
+    print("NTA:             %d" % len(nta))
+    print("other authority: %d" % (len(out_lights) - len(ay) - len(nta)))
+    print("--- possible situation (LRT %gm / metro %gm buffers) ---"
+          % (LRT_BUFFER_M, METRO_BUFFER_M))
+    print("moved Ayalon -> NTA: %d" % len(moved))
+    print("  via LRT buffer:    %d" % sum(
+        1 for l in moved if l["dL"] is not None and l["dL"] <= LRT_BUFFER_M))
+    print("  via metro buffer:  %d" % sum(
+        1 for l in moved if l["dM"] is not None and l["dM"] <= METRO_BUFFER_M))
+    print("Ayalon (final):      %d" % (len(ay) - len(moved)))
+    print("NTA (final):         %d" % (len(nta) + len(moved)))
 
 
 if __name__ == "__main__":
