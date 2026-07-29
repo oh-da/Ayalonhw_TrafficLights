@@ -7,9 +7,11 @@ Reads the source layers under data/, then:
   2. Normalizes authority values to a common form and translates property
      names from Hebrew source columns to English.
   3. Computes, for every traffic light, its distance in meters to the Ayalon
-     right-of-way polygons and to the NTA right-of-way lines. The web app tags
-     lights by comparing these distances to a user-chosen buffer, so tagging
-     is instant client-side without a geometry library.
+     right-of-way polygons and to the NTA right-of-way lines. The web app
+     assigns lights by the lights layer's own Traffic Authority column
+     (Ayalon vs NTA); an Ayalon-authority light within a user-chosen buffer
+     of the NTA right of way is tagged as moved Ayalon -> NTA. Distances are
+     precomputed so tagging is instant client-side without a geometry library.
 
 Outputs JS data files under assets/data/ (plain `const` globals so the map
 works when opened directly from the filesystem, no web server needed).
@@ -194,15 +196,15 @@ def main():
 
     # --- sanity summary at the default 30 m buffer ---------------------------
     buf = 30.0
-    in_a = [l for l in out_lights if l["dA"] is not None and l["dA"] <= buf]
-    in_n = [l for l in out_lights if l["dN"] is not None and l["dN"] <= buf]
-    both = [l for l in in_a if l["dN"] is not None and l["dN"] <= buf]
+    ay = [l for l in out_lights if l["authority"] == "נתיבי איילון"]
+    nta = [l for l in out_lights if l["authority"] == "נתע"]
+    moved = [l for l in ay if l["dN"] is not None and l["dN"] <= buf]
     print("--- summary @ %gm buffer ---" % buf)
-    print("Ayalon (initial tag): %d" % len(in_a))
-    print("moved Ayalon -> NTA:  %d" % len(both))
-    print("Ayalon (final):       %d" % (len(in_a) - len(both)))
-    print("NTA (total):          %d" % len(in_n))
-    print("untagged:             %d" % (len(out_lights) - len(in_a) - len(in_n) + len(both)))
+    print("Ayalon (authority column): %d" % len(ay))
+    print("moved Ayalon -> NTA:       %d" % len(moved))
+    print("Ayalon (final):            %d" % (len(ay) - len(moved)))
+    print("NTA (column + moved):      %d" % (len(nta) + len(moved)))
+    print("other authority:           %d" % (len(out_lights) - len(ay) - len(nta)))
 
 
 if __name__ == "__main__":
