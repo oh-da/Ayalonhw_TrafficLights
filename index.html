@@ -153,6 +153,10 @@
   .leaflet-container{font-family:inherit}
   .leaflet-control-zoom a{border-radius:0!important;color:var(--brand)!important}
   .leaflet-control-attribution{font-size:10px}
+  .map-summary-btn{
+    width:auto;direction:rtl;font-size:14px;padding:9px 14px;
+    box-shadow:0 4px 14px rgba(22,24,29,.22);
+  }
 
   .legend{
     position:absolute;inset-block-end:22px;inset-inline-end:14px;z-index:500;
@@ -215,15 +219,12 @@
 
   <div class="block">
     <p class="block-title">סינון לפי שיוך</p>
-    <label class="field">
-      <select id="category">
-        <option value="all">כל הרמזורים</option>
-        <option value="ayalon">נתיבי איילון</option>
-        <option value="nta">נת״ע</option>
-        <option value="moved">עשויים לעבור: נתיבי איילון ← נת״ע</option>
-        <option value="none">רשות תמרור אחרת</option>
-      </select>
-    </label>
+    <div class="toggles">
+      <label class="toggle"><input type="checkbox" class="cat-filter" value="ayalon" checked>נתיבי איילון<span class="swatch" style="background:#344AC1;border-radius:50%"></span></label>
+      <label class="toggle"><input type="checkbox" class="cat-filter" value="nta" checked>נת״ע<span class="swatch" style="background:#00B8F5;border-radius:50%"></span></label>
+      <label class="toggle"><input type="checkbox" class="cat-filter" value="moved" checked>עשויים לעבור: נתיבי איילון ← נת״ע<span class="swatch" style="background:#E4572E;border-radius:50%"></span></label>
+      <label class="toggle"><input type="checkbox" class="cat-filter" value="none" checked>רשות תמרור אחרת<span class="swatch" style="background:#9aa1b0;border-radius:50%"></span></label>
+    </div>
   </div>
 
   <div class="block">
@@ -238,7 +239,7 @@
     </div>
   </div>
 
-  <div class="block">
+  <div class="block" style="border-bottom:0">
     <p class="block-title">סיכום שיוך</p>
     <div class="stats">
       <div class="stat"><b id="s-ayalon" style="color:var(--brand)">—</b><span>נתיבי איילון (סופי)</span></div>
@@ -248,10 +249,6 @@
     </div>
     <div class="flow" id="flow"></div>
     <div class="bars" id="bars"></div>
-  </div>
-
-  <div class="block" style="border-bottom:0">
-    <button class="btn" id="open-summary">סיכום — השוואת שני התרחישים</button>
   </div>
 </aside>
 
@@ -330,7 +327,9 @@ const esc = s => String(s ?? '—').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&
 const fmt = n => n.toLocaleString('en-US');
 const val = s => '<bdi>' + esc(s === '' ? '—' : s) + '</bdi>';
 
-let scenario = 'current', category = 'all';
+let scenario = 'current';
+const catFilters = [...document.querySelectorAll('.cat-filter')];
+const selectedCategories = () => new Set(catFilters.filter(cb => cb.checked).map(cb => cb.value));
 
 /* Two scenarios:
    - "current situation": lights are assigned by the Traffic Authority column
@@ -352,6 +351,18 @@ function categorize(p) {
 
 const map = L.map('map', { zoomControl: false, minZoom: 6, maxZoom: 18 });
 L.control.zoom({ position: 'topright' }).addTo(map);
+
+const summaryControl = L.control({ position: 'topright' });
+summaryControl.onAdd = () => {
+  const btn = L.DomUtil.create('button', 'btn map-summary-btn');
+  btn.id = 'open-summary';
+  btn.type = 'button';
+  btn.textContent = 'סיכום — השוואת שני התרחישים';
+  L.DomEvent.disableClickPropagation(btn);
+  L.DomEvent.disableScrollPropagation(btn);
+  return btn;
+};
+summaryControl.addTo(map);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© תורמי OpenStreetMap · זכויות דרך ורמזורים: משרד התחבורה / נתיבי איילון',
   maxZoom: 19
@@ -551,12 +562,13 @@ const markers = TRAFFIC_LIGHTS.map(p => {
 /* ---------- stats + list ---------- */
 function apply() {
   const counts = { ayalon: 0, nta: 0, moved: 0, none: 0 };
+  const visibleCats = selectedCategories();
 
   markers.forEach(m => {
     const cat = categorize(m._data);
     counts[cat]++;
     m._cat = cat;
-    const show = category === 'all' || category === cat;
+    const show = visibleCats.has(cat);
     if (show) {
       m.setStyle({ fillColor: CAT[cat].color });
       if (!ptsLayer.hasLayer(m)) ptsLayer.addLayer(m);
@@ -690,10 +702,8 @@ function buildSummaryTable() {
         scenario = 'possible';
         document.getElementById('scenario').value = 'possible';
       }
-      if (category !== 'all' && category !== 'moved') {
-        category = 'all';
-        document.getElementById('category').value = 'all';
-      }
+      const movedCb = catFilters.find(cb => cb.value === 'moved');
+      if (!movedCb.checked) movedCb.checked = true;
       apply();
       const m = markers.find(x => x._data === p);
       map.flyTo([p.lat, p.lon], 16, { duration: .6 });
@@ -725,7 +735,7 @@ document.getElementById('scenario').addEventListener('change', e => {
   scenario = e.target.value;
   apply();
 });
-document.getElementById('category').addEventListener('change', e => { category = e.target.value; apply(); });
+catFilters.forEach(cb => cb.addEventListener('change', apply));
 document.getElementById('lyr-ayalon').addEventListener('change', e => {
   e.target.checked ? ayalonLayer.addTo(map) : map.removeLayer(ayalonLayer);
 });
