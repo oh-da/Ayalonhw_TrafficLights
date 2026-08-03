@@ -26,6 +26,8 @@ from pyproj import Transformer
 from shapely.geometry import Point, shape
 from shapely.ops import transform, unary_union
 
+import update_sources
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 OUT = os.path.join(ROOT, "assets", "data")
@@ -326,6 +328,8 @@ def main():
         1 for l in moved if l["dM"] is not None and l["dM"] <= METRO_BUFFER_M))
     print("Ayalon (final):      %d" % (len(ay) - len(moved)))
     print("NTA (final):         %d" % (len(nta) + len(moved)))
+
+    update_sources.main()
 
 
 if __name__ == "__main__":

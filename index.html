@@ -278,14 +278,7 @@
       <button id="close-sources" aria-label="סגירה">×</button>
     </div>
     <div class="modal-b">
-      <ol class="src-list">
-        <li>שכבת רמזורים: אתר GIS פנימי של נתיבי איילון, השכבה נמשכה בתאריך 29/07/2026, עודכנה בתאריך 03/08/2026.</li>
-        <li>שכבת רשות תמרור נתיבי איילון: אתר GIS פנימי של נתיבי איילון, השכבה נמשכה בתאריך 29/07/2026</li>
-        <li>שכבת רשות תמרור נת&quot;ע: אתר GIS פנימי של נתיבי איילון, שכבת רשויות תמרור אחרות, השכבה נמשכה בתאריך 29/07/2026</li>
-        <li>שכבת קווי רק&quot;ל: מערכת חצ&quot;ב, השכבה נמשכה בתאריך 29/07/2026</li>
-        <li>שכבת קווי מטרו: מערכת חצ&quot;ב, השכבה נמשכה בתאריך 29/07/2026</li>
-        <li>שכבת דיפו מטרו: מערכת חצ&quot;ב, השכבה נמשכה בתאריך 29/07/2026</li>
-      </ol>
+      <ol class="src-list" id="src-list"></ol>
     </div>
   </div>
 </div>
@@ -312,6 +305,7 @@
 <script src="assets/data/lrt.js"></script>
 <script src="assets/data/metro.js"></script>
 <script src="assets/data/depo.js"></script>
+<script src="assets/data/sources.js"></script>
 <script src="assets/data/lights.js"></script>
 <script>
 const CAT = {
@@ -722,6 +716,8 @@ document.getElementById('close-summary').addEventListener('click', () => { summa
 summaryModal.addEventListener('click', e => { if (e.target === summaryModal) summaryModal.hidden = true; });
 
 const sourcesModal = document.getElementById('sources-modal');
+document.getElementById('src-list').innerHTML =
+  SOURCES.map(s => '<li>' + esc(s) + '</li>').join('');
 document.getElementById('open-sources').addEventListener('click', () => { sourcesModal.hidden = false; });
 document.getElementById('close-sources').addEventListener('click', () => { sourcesModal.hidden = true; });
 sourcesModal.addEventListener('click', e => { if (e.target === sourcesModal) sourcesModal.hidden = true; });

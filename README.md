@@ -46,7 +46,8 @@ assets/data/                generated data files (JS globals)
   nta.js                    NTA right-of-way lines (filtered, display-simplified)
   lights.js                 traffic lights + precomputed distances (m) to each layer
 scripts/prepare_data.py     regenerates assets/data/ from the source layers
-data/                       source layers (GeoJSON + CSV)
+scripts/update_sources.py   regenerates the sources (i) dialog from data/sources.csv
+data/                       source layers (GeoJSON + shapefiles + CSV)
 design/                     the approved visual design
 ```
 
@@ -68,6 +69,10 @@ What it does:
   property names (Traffic Authority, Road Name, Road Number, City, Status,
   Main Street, Street Name 1–3, Source, Last Updated), which the app uses as
   its field labels.
+- **Sources list** — the sources (i) dialog is generated from `data/sources.csv`
+  (columns: `layer`, `source`, `retrieved`, `updated`). To update the dates,
+  edit the CSV and run `python3 scripts/update_sources.py` (standard library
+  only, no GIS packages needed); `prepare_data.py` also runs it automatically.
 - **Distance precomputation** — every traffic light gets its distance in meters
   to the Ayalon right-of-way polygons (0 if inside) and to the NTA right-of-way
   lines, using a local equal-distance projection. The app compares the NTA
