@@ -274,7 +274,7 @@
       <label class="toggle"><input type="checkbox" class="cat-filter" value="ayalon" checked>נתיבי איילון<span class="swatch" style="background:#344AC1;border-radius:50%"></span></label>
       <label class="toggle"><input type="checkbox" class="cat-filter" value="nta" checked>נת״ע<span class="swatch" style="background:#00B8F5;border-radius:50%"></span></label>
       <label class="toggle"><input type="checkbox" class="cat-filter" value="moved" checked>עשויים לעבור: נתיבי איילון ← נת״ע<span class="swatch" style="background:#E4572E;border-radius:50%"></span></label>
-      <label class="toggle"><input type="checkbox" class="cat-filter" value="none" checked>רשות תמרור אחרת<span class="swatch" style="background:#9aa1b0;border-radius:50%"></span></label>
+      <label class="toggle"><input type="checkbox" class="cat-filter" value="none">רשות תמרור אחרת<span class="swatch" style="background:#9aa1b0;border-radius:50%"></span></label>
     </div>
   </div>
 
@@ -889,25 +889,28 @@ function districtBtnLabel() {
   if (selectedDistricts.size === 1) return [...selectedDistricts][0];
   return selectedDistricts.size + ' מחוזות נבחרו';
 }
-function onDistrictChange() {
+function syncDistrictState() {
   selectedDistricts.clear();
   districtCbs.forEach(cb => { if (cb.checked) selectedDistricts.add(cb.value); });
   districtAllCb.checked = allDistricts();
   districtBtn.textContent = districtBtnLabel();
   applyDistrictToLayers();
   apply();
-  if (allDistricts()) {
-    map.flyToBounds(fullBounds, { padding: [24, 24], duration: .6 });
-  } else {
-    let bounds = null;
-    districtsGeo.getLayers().forEach(l => {
-      if (!selectedDistricts.has(l.feature.properties.machoz)) return;
-      const b = l.getBounds();
-      bounds = bounds ? bounds.extend(b)
-                      : L.latLngBounds(b.getSouthWest(), b.getNorthEast());
-    });
-    if (bounds) map.flyToBounds(bounds, { padding: [24, 24], duration: .6 });
-  }
+}
+function selectedDistrictBounds() {
+  if (allDistricts()) return fullBounds;
+  let bounds = null;
+  districtsGeo.getLayers().forEach(l => {
+    if (!selectedDistricts.has(l.feature.properties.machoz)) return;
+    const b = l.getBounds();
+    bounds = bounds ? bounds.extend(b)
+                    : L.latLngBounds(b.getSouthWest(), b.getNorthEast());
+  });
+  return bounds || fullBounds;
+}
+function onDistrictChange() {
+  syncDistrictState();
+  map.flyToBounds(selectedDistrictBounds(), { padding: [24, 24], duration: .6 });
 }
 districtCbs.forEach(cb => cb.addEventListener('change', onDistrictChange));
 districtAllCb.addEventListener('change', () => {
@@ -946,9 +949,12 @@ document.getElementById('lyr-pts').addEventListener('change', e => {
   e.target.checked ? ptsLayer.addTo(map) : map.removeLayer(ptsLayer);
 });
 
+/* Default view on load: only the Merkaz and Tel Aviv districts are selected. */
+const DEFAULT_DISTRICTS = ['מחוז מרכז', 'מחוז ת"א'];
 const fullBounds = ayalonGeo.getBounds().extend(ntaGeo.getBounds());
-map.fitBounds(fullBounds, { padding: [24, 24] });
-apply();
+districtCbs.forEach(cb => { cb.checked = DEFAULT_DISTRICTS.includes(cb.value); });
+syncDistrictState();
+map.fitBounds(selectedDistrictBounds(), { padding: [24, 24] });
 </script>
 </body>
 </html>
