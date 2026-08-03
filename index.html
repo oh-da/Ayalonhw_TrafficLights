@@ -218,6 +218,16 @@
   </div>
 
   <div class="block">
+    <p class="block-title">סינון לפי מחוז</p>
+    <label class="field">
+      <select id="district">
+        <option value="all">כל המחוזות</option>
+      </select>
+    </label>
+    <p class="slider-note">הסינון חל על הרמזורים ועל כל שכבות המפה.</p>
+  </div>
+
+  <div class="block">
     <p class="block-title">סינון לפי שיוך</p>
     <div class="toggles">
       <label class="toggle"><input type="checkbox" class="cat-filter" value="ayalon" checked>נתיבי איילון<span class="swatch" style="background:#344AC1;border-radius:50%"></span></label>
@@ -230,6 +240,7 @@
   <div class="block">
     <p class="block-title">שכבות</p>
     <div class="toggles">
+      <label class="toggle"><input type="checkbox" id="lyr-districts" checked>מחוזות<span class="swatch" style="background:rgba(95,107,122,.08);border:1px dashed #5f6b7a"></span></label>
       <label class="toggle"><input type="checkbox" id="lyr-ayalon" checked>זכות דרך — נתיבי איילון<span class="swatch" style="background:rgba(52,74,193,.12);border:1px solid #344AC1"></span></label>
       <label class="toggle"><input type="checkbox" id="lyr-nta" checked>זכות דרך — נת״ע<span class="swatch line-sw" style="background:#00B8F5"></span></label>
       <label class="toggle"><input type="checkbox" id="lyr-lrt" checked>רק״ל — נת״ע (חיץ 100 מ׳)<span class="swatch line-sw" style="background:linear-gradient(90deg,#D32F2F 33%,#8E24AA 33% 66%,#2E7D32 66%)"></span></label>
@@ -257,6 +268,7 @@
   <div class="legend">
     <p>מקרא</p>
     <ul>
+      <li><i style="background:rgba(95,107,122,.08);border:1px dashed #5f6b7a"></i>מחוזות</li>
       <li><i style="background:rgba(52,74,193,.2);border:1px solid #344AC1"></i>זכות דרך — נתיבי איילון</li>
       <li><i class="line-i" style="background:#00B8F5"></i>זכות דרך — נת״ע</li>
       <li><i class="line-i" style="background:linear-gradient(90deg,#D32F2F 33%,#8E24AA 33% 66%,#2E7D32 66%)"></i>רק״ל: אדום · סגול · ירוק</li>
@@ -300,6 +312,7 @@
   </div>
 </div>
 
+<script src="assets/data/districts.js"></script>
 <script src="assets/data/ayalon.js"></script>
 <script src="assets/data/nta.js"></script>
 <script src="assets/data/lrt.js"></script>
@@ -324,6 +337,31 @@ const val = s => '<bdi>' + esc(s === '' ? '—' : s) + '</bdi>';
 let scenario = 'current';
 const catFilters = [...document.querySelectorAll('.cat-filter')];
 const selectedCategories = () => new Set(catFilters.filter(cb => cb.checked).map(cb => cb.value));
+
+/* District filter ("machoz" column of the Districts layer): applies to the
+   traffic lights and to every map layer. Each feature carries the list of
+   districts it intersects (precomputed by prepare_data.py); each light
+   carries the district that contains it. */
+let districtSel = 'all';
+const inDistrict = p => districtSel === 'all' || p.district === districtSel;
+const districtSelect = document.getElementById('district');
+DISTRICTS_DATA.features
+  .map(f => f.properties.machoz)
+  .sort((a, b) => a.localeCompare(b, 'he'))
+  .forEach(name => {
+    const o = document.createElement('option');
+    o.value = name;
+    o.textContent = name;
+    districtSelect.appendChild(o);
+  });
+
+const districtFilterable = [];
+function trackByDistrict(parent, layer, districts) {
+  districtFilterable.push({ parent, layer, districts: districts || null });
+}
+function trackGeoByDistrict(geo) {
+  geo.eachLayer(l => trackByDistrict(geo, l, l.feature && l.feature.properties.districts));
+}
 
 /* Two scenarios:
    - "current situation": lights are assigned by the Traffic Authority column
@@ -362,12 +400,39 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 
+const districtsLayer = L.layerGroup().addTo(map);
 const ayalonLayer = L.layerGroup().addTo(map);
 const ntaLayer = L.layerGroup().addTo(map);
 const lrtLayer = L.layerGroup().addTo(map);
 const metroLayer = L.layerGroup().addTo(map);
 const depoLayer = L.layerGroup().addTo(map);
 const ptsLayer = L.layerGroup().addTo(map);
+
+/* ---------- districts (filter layer) ---------- */
+const districtStyle = { color: '#5f6b7a', weight: 1.2, opacity: .65, dashArray: '6 4', fillColor: '#5f6b7a', fillOpacity: .03 };
+const districtSelStyle = { color: '#16181d', weight: 2.2, opacity: .9, dashArray: null, fillColor: '#5f6b7a', fillOpacity: .05 };
+const districtsGeo = L.geoJSON(DISTRICTS_DATA, {
+  style: districtStyle,
+  onEachFeature: (f, layer) => {
+    layer.bindTooltip(() =>
+      '<div class="st" style="color:#5f6b7a">' + val(f.properties.machoz) + '</div>',
+      { sticky: true, className: 'snip', direction: 'top', offset: [0, -6] });
+  }
+});
+districtsLayer.addLayer(districtsGeo);
+
+function applyDistrictToLayers() {
+  districtFilterable.forEach(e => {
+    const show = districtSel === 'all' || (e.districts && e.districts.includes(districtSel));
+    if (show) {
+      if (!e.parent.hasLayer(e.layer)) e.parent.addLayer(e.layer);
+    } else if (e.parent.hasLayer(e.layer)) {
+      e.parent.removeLayer(e.layer);
+    }
+  });
+  districtsGeo.eachLayer(l =>
+    l.setStyle(l.feature.properties.machoz === districtSel ? districtSelStyle : districtStyle));
+}
 
 /* ---------- Ayalon right-of-way polygons ---------- */
 const ayalonStyle = { color: '#344AC1', weight: 1.4, opacity: .9, fillColor: '#344AC1', fillOpacity: .10 };
@@ -395,6 +460,7 @@ const ayalonGeo = L.geoJSON(AYALON_GEOJSON, {
   }
 });
 ayalonLayer.addLayer(ayalonGeo);
+trackGeoByDistrict(ayalonGeo);
 
 /* ---------- NTA right-of-way lines ---------- */
 const ntaStyle = { color: '#00B8F5', weight: 2.4, opacity: .85 };
@@ -423,23 +489,26 @@ const ntaGeo = L.geoJSON(NTA_GEOJSON, {
   }
 });
 ntaLayer.addLayer(ntaGeo);
+trackGeoByDistrict(ntaGeo);
 
 /* ---------- NTA infrastructure: LRT / metro lines + fixed buffers ---------- */
 const LRT_HEB = { 'Red Line': 'הקו האדום', 'Purple Line': 'הקו הסגול', 'Green Line': 'הקו הירוק' };
 
 function addBuffers(group, fc, colorOf) {
   fc.features.forEach(f => {
-    group.addLayer(L.geoJSON(f, {
+    const buf = L.geoJSON(f, {
       style: { color: colorOf(f.properties.group), weight: 1, opacity: .45,
                dashArray: '4 4', fillColor: colorOf(f.properties.group), fillOpacity: .07 },
       interactive: false
-    }));
+    });
+    group.addLayer(buf);
+    trackByDistrict(group, buf, f.properties.districts);
   });
 }
 
 // LRT lines (NTA only: Red / Purple / Green) + 250 m buffer
 addBuffers(lrtLayer, LRT_DATA.buffers, g => LRT_COLORS[g]);
-lrtLayer.addLayer(L.geoJSON(LRT_DATA.lines, {
+const lrtLines = L.geoJSON(LRT_DATA.lines, {
   style: f => ({ color: LRT_COLORS[f.properties.line] || '#666', weight: 3, opacity: .9 }),
   onEachFeature: (f, layer) => {
     const p = f.properties, c = LRT_COLORS[p.line] || '#666';
@@ -459,11 +528,13 @@ lrtLayer.addLayer(L.geoJSON(LRT_DATA.lines, {
         '</dl></div>', e.latlng, { maxWidth: 330 });
     });
   }
-}));
+});
+lrtLayer.addLayer(lrtLines);
+trackGeoByDistrict(lrtLines);
 
 // Metro lines (M1 / M2 / M3) + 250 m buffer
 addBuffers(metroLayer, METRO_DATA.buffers, g => METRO_COLORS[g]);
-metroLayer.addLayer(L.geoJSON(METRO_DATA.lines, {
+const metroLines = L.geoJSON(METRO_DATA.lines, {
   style: f => ({ color: METRO_COLORS[f.properties.name] || '#666', weight: 3, opacity: .9, dashArray: '8 5' }),
   onEachFeature: (f, layer) => {
     const p = f.properties, c = METRO_COLORS[p.name] || '#666';
@@ -479,17 +550,21 @@ metroLayer.addLayer(L.geoJSON(METRO_DATA.lines, {
         e.latlng, { maxWidth: 330 });
     });
   }
-}));
+});
+metroLayer.addLayer(metroLines);
+trackGeoByDistrict(metroLines);
 
 // Metro depots + 500 m buffer
 DEPO_DATA.features.forEach(f => {
-  depoLayer.addLayer(L.geoJSON({ type: 'Feature', geometry: f.buffer }, {
+  const depoBuf = L.geoJSON({ type: 'Feature', geometry: f.buffer }, {
     style: { color: DEPO_COLOR, weight: 1, opacity: .45, dashArray: '4 4',
              fillColor: DEPO_COLOR, fillOpacity: .07 },
     interactive: false
-  }));
+  });
+  depoLayer.addLayer(depoBuf);
+  trackByDistrict(depoLayer, depoBuf, f.properties.districts);
   const p = f.properties;
-  depoLayer.addLayer(L.geoJSON({ type: 'Feature', geometry: f.geometry }, {
+  const depoGeom = L.geoJSON({ type: 'Feature', geometry: f.geometry }, {
     style: { color: DEPO_COLOR, weight: 1.4, opacity: .9, fillColor: DEPO_COLOR, fillOpacity: .25 },
     onEachFeature: (_, layer) => {
       layer.bindTooltip(() =>
@@ -507,7 +582,9 @@ DEPO_DATA.features.forEach(f => {
           '</dl></div>', e.latlng, { maxWidth: 330 });
       });
     }
-  }));
+  });
+  depoLayer.addLayer(depoGeom);
+  trackByDistrict(depoLayer, depoGeom, f.properties.districts);
 });
 
 /* ---------- traffic-light markers ---------- */
@@ -528,6 +605,7 @@ function pointPopup(p, cat) {
     '<dt>משויך אל</dt><dd><span class="chip" style="color:' + c + '"><i></i>' + esc(CAT[cat].label) + '</span></dd>' +
     '<dt>רשות תמרור</dt><dd>' + val(p.authority) + '</dd>' +
     '<dt>עיר</dt><dd>' + val(p.city) + '</dd>' +
+    '<dt>מחוז</dt><dd>' + val(p.district) + '</dd>' +
     '<dt>סטטוס</dt><dd>' + val(p.status) + '</dd>' +
     '<dt>רחוב ראשי</dt><dd>' + val(p.mainStreet) + '</dd>' +
     streets +
@@ -560,9 +638,10 @@ function apply() {
 
   markers.forEach(m => {
     const cat = categorize(m._data);
-    counts[cat]++;
     m._cat = cat;
-    const show = visibleCats.has(cat);
+    const inD = inDistrict(m._data);
+    if (inD) counts[cat]++;
+    const show = inD && visibleCats.has(cat);
     if (show) {
       m.setStyle({ fillColor: CAT[cat].color });
       if (!ptsLayer.hasLayer(m)) ptsLayer.addLayer(m);
@@ -621,7 +700,7 @@ function apply() {
 /* ---------- scenario-comparison summary (floating popup) ---------- */
 function scenarioCounts(mode) {
   const c = { ayalon: 0, nta: 0, moved: 0, none: 0 };
-  TRAFFIC_LIGHTS.forEach(p => {
+  TRAFFIC_LIGHTS.filter(inDistrict).forEach(p => {
     if (p.authority === 'נתיבי איילון') {
       c[(mode === 'possible' && inNtaInfra(p)) ? 'moved' : 'ayalon']++;
     } else if (p.authority === 'נתע') c.nta++;
@@ -646,7 +725,7 @@ function buildSummaryTable() {
     '<tr class="tot"><td>סה״כ רמזורים</td><td>' + fmt(total) + '</td><td>' + fmt(total) + '</td></tr>';
 
   const moved = TRAFFIC_LIGHTS
-    .filter(p => p.authority === 'נתיבי איילון' && inNtaInfra(p))
+    .filter(p => inDistrict(p) && p.authority === 'נתיבי איילון' && inNtaInfra(p))
     .sort((a, b) => (a.city + a.name).localeCompare(b.city + b.name, 'he'));
   document.getElementById('moved-count').textContent = '(' + fmt(moved.length) + ')';
 
@@ -732,6 +811,20 @@ document.getElementById('scenario').addEventListener('change', e => {
   apply();
 });
 catFilters.forEach(cb => cb.addEventListener('change', apply));
+districtSelect.addEventListener('change', () => {
+  districtSel = districtSelect.value;
+  applyDistrictToLayers();
+  apply();
+  if (districtSel === 'all') {
+    map.flyToBounds(fullBounds, { padding: [24, 24], duration: .6 });
+  } else {
+    const d = districtsGeo.getLayers().find(l => l.feature.properties.machoz === districtSel);
+    if (d) map.flyToBounds(d.getBounds(), { padding: [24, 24], duration: .6 });
+  }
+});
+document.getElementById('lyr-districts').addEventListener('change', e => {
+  e.target.checked ? districtsLayer.addTo(map) : map.removeLayer(districtsLayer);
+});
 document.getElementById('lyr-ayalon').addEventListener('change', e => {
   e.target.checked ? ayalonLayer.addTo(map) : map.removeLayer(ayalonLayer);
 });
@@ -751,7 +844,8 @@ document.getElementById('lyr-pts').addEventListener('change', e => {
   e.target.checked ? ptsLayer.addTo(map) : map.removeLayer(ptsLayer);
 });
 
-map.fitBounds(ayalonGeo.getBounds().extend(ntaGeo.getBounds()), { padding: [24, 24] });
+const fullBounds = ayalonGeo.getBounds().extend(ntaGeo.getBounds());
+map.fitBounds(fullBounds, { padding: [24, 24] });
 apply();
 </script>
 </body>

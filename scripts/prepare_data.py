@@ -12,6 +12,9 @@ Reads the source layers under data/, then:
      (Ayalon vs NTA); an Ayalon-authority light within a user-chosen buffer
      of the NTA right of way is tagged as moved Ayalon -> NTA. Distances are
      precomputed so tagging is instant client-side without a geometry library.
+  4. Reads the Districts layer (column "machoz"), assigns every traffic light
+     to its district, and tags every feature of every layer with the list of
+     districts it intersects, so the app can filter the whole map by district.
 
 Outputs JS data files under assets/data/ (plain `const` globals so the map
 works when opened directly from the filesystem, no web server needed).
@@ -42,6 +45,10 @@ LIGHTS_SRC = os.path.join(DATA, "traffic_lights", "Ramzorim")
 LRT_SRC = os.path.join(DATA, "lrt_line", "LRT_LINE")
 METRO_SRC = os.path.join(DATA, "metro_line", "METRO_LINE")
 DEPO_SRC = os.path.join(DATA, "depo_metro", "DEPO_METRO")
+
+# Districts shapefile (Israel TM Grid, EPSG:2039). The "machoz" column names
+# the district; the app filters every layer by it.
+DISTRICTS_SRC = os.path.join(DATA, "Districts", "Districts")
 
 # Fixed buffer sizes around the NTA infrastructure shapes.
 LRT_BUFFER_M = 100.0
@@ -152,11 +159,36 @@ def main():
 
     # --- NTA infrastructure layers (Israel TM Grid, meters) ------------------
     tm_to_wgs = Transformer.from_crs(2039, 4326, always_xy=True)
+    wgs_to_tm = Transformer.from_crs(4326, 2039, always_xy=True)
 
     def tm_geom_to_wgs(geom, simplify_m):
         g = geom.simplify(simplify_m, preserve_topology=True)
         g = transform(tm_to_wgs.transform, g)
         return round_coords(json.loads(json.dumps(g.__geo_interface__)))
+
+    # --- districts (Israel TM Grid) ------------------------------------------
+    districts = [(clean(rec.get("machoz")), g) for rec, g in read_shp(DISTRICTS_SRC)]
+    print("Districts:", len(districts))
+
+    def feature_districts(geom_tm):
+        """Names of all districts a (TM) geometry intersects."""
+        return [name for name, dg in districts if geom_tm.intersects(dg)]
+
+    def point_district(pt_tm):
+        """District containing a (TM) point, falling back to the nearest one."""
+        for name, dg in districts:
+            if dg.contains(pt_tm):
+                return name
+        return min(districts, key=lambda d: d[1].distance(pt_tm))[0]
+
+    write_js("districts.js", "DISTRICTS_DATA", {
+        "type": "FeatureCollection",
+        "features": [{
+            "type": "Feature",
+            "properties": {"machoz": name},
+            "geometry": tm_geom_to_wgs(g, 25.0),
+        } for name, g in districts],
+    })
 
     lrt = [(rec, g) for rec, g in read_shp(LRT_SRC)
            if norm_value(rec.get("COMP")) == "נתע"
@@ -171,7 +203,9 @@ def main():
         """Feature collections for a line layer + dissolved buffer per group."""
         lines = {"type": "FeatureCollection", "features": [{
             "type": "Feature",
-            "properties": {out: clean(rec.get(src)) for out, src in props.items()},
+            "properties": dict(
+                {out: clean(rec.get(src)) for out, src in props.items()},
+                districts=feature_districts(g)),
             "geometry": tm_geom_to_wgs(g, 1.0),
         } for rec, g in pairs]}
         buffers = {"type": "FeatureCollection", "features": []}
@@ -180,7 +214,7 @@ def main():
                                if clean(rec.get(key)) == group])
             buffers["features"].append({
                 "type": "Feature",
-                "properties": {"group": group},
+                "properties": {"group": group, "districts": feature_districts(buf)},
                 "geometry": tm_geom_to_wgs(buf, 5.0),
             })
         return {"lines": lines, "buffers": buffers, "bufferM": buffer_m}
@@ -193,12 +227,14 @@ def main():
 
     depo_out = {"type": "FeatureCollection", "features": [], "bufferM": DEPO_BUFFER_M}
     for rec, g in depo:
+        buf = g.buffer(DEPO_BUFFER_M)
         depo_out["features"].append({
             "type": "Feature",
             "properties": {"name": clean(rec.get("NAME")),
-                           "status": clean(rec.get("STATUS"))},
+                           "status": clean(rec.get("STATUS")),
+                           "districts": feature_districts(buf)},
             "geometry": tm_geom_to_wgs(g, 1.0),
-            "buffer": tm_geom_to_wgs(g.buffer(DEPO_BUFFER_M), 5.0),
+            "buffer": tm_geom_to_wgs(buf, 5.0),
         })
     write_js("depo.js", "DEPO_DATA", depo_out)
 
@@ -258,6 +294,7 @@ def main():
             "streets": [s for s in streets if s],
             "source": clean(rec.get("Source")),
             "updated": clean(rec.get("Date")),
+            "district": point_district(pt_tm),
             "dA": round(d_a, 1) if d_a <= MAX_DIST_M else None,
             "dN": round(d_n, 1) if d_n <= MAX_DIST_M else None,
             "dL": round(d_l, 1) if d_l <= MAX_DIST_M else None,
@@ -282,6 +319,8 @@ def main():
                 "roadName": clean(p.get("road_rashu")),
                 "source": clean(p.get("source")),
                 "updated": clean(p.get("date")),
+                "districts": feature_districts(
+                    transform(wgs_to_tm.transform, geom)),
             },
             "geometry": geom_display(geom, 1.0, deg_per_m),
         })
@@ -300,6 +339,8 @@ def main():
                 "roadNumber": clean(p.get("ROADNUMBER")),
                 "source": clean(p.get("Source")),
                 "updated": clean(p.get("Date")),
+                "districts": feature_districts(
+                    transform(wgs_to_tm.transform, geom)),
             },
             "geometry": geom_display(geom, 1.0, deg_per_m),
         })

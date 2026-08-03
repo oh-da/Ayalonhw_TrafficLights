@@ -45,6 +45,7 @@ assets/data/                generated data files (JS globals)
   ayalon.js                 Ayalon right-of-way polygons (display-simplified)
   nta.js                    NTA right-of-way lines (filtered, display-simplified)
   lights.js                 traffic lights + precomputed distances (m) to each layer
+  districts.js              district polygons (column "machoz") for the district filter
 scripts/prepare_data.py     regenerates assets/data/ from the source layers
 scripts/update_sources.py   regenerates the sources (i) dialog from data/sources.csv
 data/                       source layers (GeoJSON + shapefiles + CSV)
@@ -73,6 +74,11 @@ What it does:
   (columns: `layer`, `source`, `retrieved`, `updated`). To update the dates,
   edit the CSV and run `python3 scripts/update_sources.py` (standard library
   only, no GIS packages needed); `prepare_data.py` also runs it automatically.
+- **District tagging** — the Districts layer (`data/Districts`, column
+  `machoz`) is exported for display, every traffic light is assigned the
+  district containing it, and every feature of every layer is tagged with the
+  list of districts it intersects, so the app can filter the whole map by
+  district with no client-side geometry.
 - **Distance precomputation** — every traffic light gets its distance in meters
   to the Ayalon right-of-way polygons (0 if inside) and to the NTA right-of-way
   lines, using a local equal-distance projection. The app compares the NTA
@@ -82,6 +88,9 @@ What it does:
 ## Map features
 
 - Layer toggles for the Ayalon polygons, NTA lines and traffic lights.
+- District filter (Districts layer, column `machoz`): a dropdown that filters
+  the traffic lights and **all** map layers to the chosen district, highlights
+  it and zooms to it; the summary counts follow the filter.
 - Buffer-distance slider with live re-tagging and an assignment summary
   (Ayalon per column/final, moved Ayalon → NTA, NTA total, other authority).
 - Filter the lights by assignment category.
