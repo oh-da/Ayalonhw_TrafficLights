@@ -62,6 +62,22 @@
   }
   select:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 
+  /* multi-select dropdown (district filter) */
+  .dd{position:relative}
+  .dd-btn{
+    width:100%;font-family:inherit;font-size:15px;color:var(--ink);text-align:start;cursor:pointer;
+    padding:9px 11px;border:1px solid var(--line-strong);border-radius:0;background:#fff;
+    background-image:linear-gradient(45deg,transparent 50%,var(--brand) 50%),linear-gradient(135deg,var(--brand) 50%,transparent 50%);
+    background-position:12px calc(50% - 2px),17px calc(50% - 2px);background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+  }
+  .dd-panel{
+    position:absolute;inset-inline:0;inset-block-start:calc(100% + 4px);z-index:1200;
+    background:#fff;border:1px solid var(--line-strong);box-shadow:0 10px 30px rgba(22,24,29,.15);
+    max-height:280px;overflow:auto;padding:4px;
+  }
+  .dd-panel .toggle{padding:7px 9px}
+  .dd-panel .sep{border-top:1px solid var(--line);margin:4px 6px}
+
   .slider-row{display:flex;align-items:center;gap:12px}
   input[type=range]{flex:1;accent-color:var(--brand);height:22px;margin:0}
   .slider-val{
@@ -219,12 +235,15 @@
 
   <div class="block">
     <p class="block-title">סינון לפי מחוז</p>
-    <label class="field">
-      <select id="district">
-        <option value="all">כל המחוזות</option>
-      </select>
-    </label>
-    <p class="slider-note">הסינון חל על הרמזורים ועל כל שכבות המפה.</p>
+    <div class="dd" id="district-dd">
+      <button type="button" class="dd-btn" id="district-btn" aria-haspopup="true" aria-expanded="false">כל המחוזות</button>
+      <div class="dd-panel" id="district-panel" hidden>
+        <label class="toggle"><input type="checkbox" id="district-all" checked>כל המחוזות</label>
+        <div class="sep" aria-hidden="true"></div>
+        <div id="district-opts"></div>
+      </div>
+    </div>
+    <p class="slider-note">ניתן לבחור כמה מחוזות יחד; הסינון חל על הרמזורים ועל כל שכבות המפה.</p>
   </div>
 
   <div class="block">
@@ -338,22 +357,34 @@ let scenario = 'current';
 const catFilters = [...document.querySelectorAll('.cat-filter')];
 const selectedCategories = () => new Set(catFilters.filter(cb => cb.checked).map(cb => cb.value));
 
-/* District filter ("machoz" column of the Districts layer): applies to the
-   traffic lights and to every map layer. Each feature carries the list of
-   districts it intersects (precomputed by prepare_data.py); each light
-   carries the district that contains it. */
-let districtSel = 'all';
-const inDistrict = p => districtSel === 'all' || p.district === districtSel;
-const districtSelect = document.getElementById('district');
+/* District filter ("machoz" column of the Districts layer): multi-select
+   dropdown that applies to the traffic lights and to every map layer. Each
+   feature carries the list of districts it intersects (precomputed by
+   prepare_data.py); each light carries the district that contains it.
+   An empty selection means all districts. */
+const selectedDistricts = new Set();
+const allDistricts = () => selectedDistricts.size === 0;
+const inDistrict = p => allDistricts() || selectedDistricts.has(p.district);
+
+const districtBtn = document.getElementById('district-btn');
+const districtPanel = document.getElementById('district-panel');
+const districtAllCb = document.getElementById('district-all');
+const districtOpts = document.getElementById('district-opts');
 DISTRICTS_DATA.features
   .map(f => f.properties.machoz)
   .sort((a, b) => a.localeCompare(b, 'he'))
   .forEach(name => {
-    const o = document.createElement('option');
-    o.value = name;
-    o.textContent = name;
-    districtSelect.appendChild(o);
+    const label = document.createElement('label');
+    label.className = 'toggle';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'district-opt';
+    cb.value = name;
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(name));
+    districtOpts.appendChild(label);
   });
+const districtCbs = [...districtOpts.querySelectorAll('.district-opt')];
 
 const districtFilterable = [];
 function trackByDistrict(parent, layer, districts) {
@@ -423,7 +454,8 @@ districtsLayer.addLayer(districtsGeo);
 
 function applyDistrictToLayers() {
   districtFilterable.forEach(e => {
-    const show = districtSel === 'all' || (e.districts && e.districts.includes(districtSel));
+    const show = allDistricts() ||
+      (e.districts && e.districts.some(d => selectedDistricts.has(d)));
     if (show) {
       if (!e.parent.hasLayer(e.layer)) e.parent.addLayer(e.layer);
     } else if (e.parent.hasLayer(e.layer)) {
@@ -431,7 +463,7 @@ function applyDistrictToLayers() {
     }
   });
   districtsGeo.eachLayer(l =>
-    l.setStyle(l.feature.properties.machoz === districtSel ? districtSelStyle : districtStyle));
+    l.setStyle(selectedDistricts.has(l.feature.properties.machoz) ? districtSelStyle : districtStyle));
 }
 
 /* ---------- Ayalon right-of-way polygons ---------- */
@@ -802,7 +834,12 @@ document.getElementById('close-sources').addEventListener('click', () => { sourc
 sourcesModal.addEventListener('click', e => { if (e.target === sourcesModal) sourcesModal.hidden = true; });
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { summaryModal.hidden = true; sourcesModal.hidden = true; }
+  if (e.key === 'Escape') {
+    summaryModal.hidden = true;
+    sourcesModal.hidden = true;
+    districtPanel.hidden = true;
+    districtBtn.setAttribute('aria-expanded', 'false');
+  }
 });
 
 /* ---------- wiring ---------- */
@@ -811,15 +848,44 @@ document.getElementById('scenario').addEventListener('change', e => {
   apply();
 });
 catFilters.forEach(cb => cb.addEventListener('change', apply));
-districtSelect.addEventListener('change', () => {
-  districtSel = districtSelect.value;
+function districtBtnLabel() {
+  if (allDistricts()) return 'כל המחוזות';
+  if (selectedDistricts.size === 1) return [...selectedDistricts][0];
+  return selectedDistricts.size + ' מחוזות נבחרו';
+}
+function onDistrictChange() {
+  selectedDistricts.clear();
+  districtCbs.forEach(cb => { if (cb.checked) selectedDistricts.add(cb.value); });
+  districtAllCb.checked = allDistricts();
+  districtBtn.textContent = districtBtnLabel();
   applyDistrictToLayers();
   apply();
-  if (districtSel === 'all') {
+  if (allDistricts()) {
     map.flyToBounds(fullBounds, { padding: [24, 24], duration: .6 });
   } else {
-    const d = districtsGeo.getLayers().find(l => l.feature.properties.machoz === districtSel);
-    if (d) map.flyToBounds(d.getBounds(), { padding: [24, 24], duration: .6 });
+    let bounds = null;
+    districtsGeo.getLayers().forEach(l => {
+      if (!selectedDistricts.has(l.feature.properties.machoz)) return;
+      const b = l.getBounds();
+      bounds = bounds ? bounds.extend(b)
+                      : L.latLngBounds(b.getSouthWest(), b.getNorthEast());
+    });
+    if (bounds) map.flyToBounds(bounds, { padding: [24, 24], duration: .6 });
+  }
+}
+districtCbs.forEach(cb => cb.addEventListener('change', onDistrictChange));
+districtAllCb.addEventListener('change', () => {
+  districtCbs.forEach(cb => { cb.checked = false; });
+  onDistrictChange();
+});
+districtBtn.addEventListener('click', () => {
+  districtPanel.hidden = !districtPanel.hidden;
+  districtBtn.setAttribute('aria-expanded', String(!districtPanel.hidden));
+});
+document.addEventListener('click', e => {
+  if (!document.getElementById('district-dd').contains(e.target)) {
+    districtPanel.hidden = true;
+    districtBtn.setAttribute('aria-expanded', 'false');
   }
 });
 document.getElementById('lyr-districts').addEventListener('change', e => {

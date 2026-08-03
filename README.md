@@ -88,9 +88,10 @@ What it does:
 ## Map features
 
 - Layer toggles for the Ayalon polygons, NTA lines and traffic lights.
-- District filter (Districts layer, column `machoz`): a dropdown that filters
-  the traffic lights and **all** map layers to the chosen district, highlights
-  it and zooms to it; the summary counts follow the filter.
+- District filter (Districts layer, column `machoz`): a multi-select dropdown
+  that filters the traffic lights and **all** map layers to any combination of
+  districts, highlights them and zooms to them; the summary counts follow the
+  filter. An empty selection shows all districts.
 - Buffer-distance slider with live re-tagging and an assignment summary
   (Ayalon per column/final, moved Ayalon → NTA, NTA total, other authority).
 - Filter the lights by assignment category.
