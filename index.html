@@ -133,11 +133,15 @@
     background:var(--brand);color:#fff;padding:14px 18px;
     display:flex;align-items:center;justify-content:space-between;gap:12px;
   }
-  .modal-h b{font-size:17px;font-weight:700}
+  .modal-h b{font-size:17px;font-weight:700;margin-inline-end:auto}
   .modal-h button{
     border:0;background:transparent;color:#fff;font-size:22px;line-height:1;cursor:pointer;
     padding:2px 6px;font-family:inherit;
   }
+  .modal-h .pdf-btn{
+    font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.65);padding:6px 11px;
+  }
+  .modal-h .pdf-btn:hover{background:rgba(255,255,255,.16)}
   .modal-b{padding:18px}
   .cmp{width:100%;border-collapse:collapse;font-size:14.5px}
   .cmp th,.cmp td{border:1px solid var(--line);padding:9px 12px;text-align:center}
@@ -211,6 +215,24 @@
   .chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:3px 8px;border:1px solid currentColor}
   .chip i{width:8px;height:8px;background:currentColor;display:block}
   .leaflet-container a.leaflet-popup-close-button{color:#fff}
+
+  /* ---------- PDF export: print only the summary modal ---------- */
+  @page{margin:12mm}
+  @media print{
+    body.print-summary{display:block;overflow:visible;height:auto}
+    body.print-summary aside,
+    body.print-summary main,
+    body.print-summary #sources-modal{display:none!important}
+    body.print-summary #summary-modal{position:static;display:block;padding:0;background:none}
+    body.print-summary #summary-modal .modal{width:100%;max-height:none;overflow:visible;border:0;box-shadow:none}
+    body.print-summary #summary-modal .modal-h button,
+    body.print-summary #summary-modal .no-print{display:none}
+    body.print-summary #summary-modal *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body.print-summary #summary-modal .cmp tr,
+    body.print-summary #summary-modal .mv-row,
+    body.print-summary #summary-modal .insight{break-inside:avoid}
+    body.print-summary #summary-modal .mv-row{cursor:default}
+  }
 </style>
 </head>
 <body>
@@ -318,6 +340,7 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="summary-title">
     <div class="modal-h">
       <b id="summary-title">סיכום — השוואת שני התרחישים</b>
+      <button id="export-summary-pdf" class="pdf-btn" type="button" title="ייצוא הסיכום כולו לקובץ PDF">ייצוא PDF</button>
       <button id="close-summary" aria-label="סגירה">×</button>
     </div>
     <div class="modal-b">
@@ -326,7 +349,7 @@
       <div class="insight"><b>ראוי לציון:</b> <span id="insight"></span></div>
       <p class="block-title" style="margin:18px 0 8px">רמזורים שעשויים לעבור מנתיבי איילון לנת״ע <span id="moved-count" style="color:var(--moved)"></span></p>
       <div id="moved-list"></div>
-      <p class="modal-note">לחיצה על רמזור ברשימה תסגור את החלון ותתמקד בו על המפה (בתרחיש ״מצב אפשרי״).</p>
+      <p class="modal-note no-print">לחיצה על רמזור ברשימה תסגור את החלון ותתמקד בו על המפה (בתרחיש ״מצב אפשרי״).</p>
     </div>
   </div>
 </div>
@@ -824,6 +847,19 @@ document.getElementById('open-summary').addEventListener('click', () => {
   summaryModal.hidden = false;
 });
 document.getElementById('close-summary').addEventListener('click', () => { summaryModal.hidden = true; });
+
+/* Export the whole summary modal (including scrolled-out content) to PDF
+   via the browser's print-to-PDF; print CSS isolates the modal. */
+document.getElementById('export-summary-pdf').addEventListener('click', () => {
+  const prevTitle = document.title;
+  document.title = 'סיכום — השוואת שני התרחישים';
+  document.body.classList.add('print-summary');
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('print-summary');
+    document.title = prevTitle;
+  }, { once: true });
+  window.print();
+});
 summaryModal.addEventListener('click', e => { if (e.target === summaryModal) summaryModal.hidden = true; });
 
 const sourcesModal = document.getElementById('sources-modal');
