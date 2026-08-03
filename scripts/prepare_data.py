@@ -32,7 +32,9 @@ OUT = os.path.join(ROOT, "assets", "data")
 
 AYALON_SRC = os.path.join(DATA, "נתיבי איילון.geojson")
 NTA_SRC = os.path.join(DATA, "רשויות תמרור אחרות.geojson")
-LIGHTS_SRC = os.path.join(DATA, "רמזורים במטרופולין.geojson")
+
+# Traffic lights shapefile (Israel TM Grid, EPSG:2039).
+LIGHTS_SRC = os.path.join(DATA, "traffic_lights", "Ramzorim")
 
 # NTA infrastructure shapefiles (Israel TM Grid, EPSG:2039 — units are meters).
 LRT_SRC = os.path.join(DATA, "lrt_line", "LRT_LINE")
@@ -74,6 +76,15 @@ def norm_value(v):
 def clean(v):
     v = "" if v is None else str(v).strip()
     return v
+
+
+def fmt_id(v):
+    """Numeric shapefile IDs come back as floats; show whole ones as integers."""
+    try:
+        f = float(v)
+        return str(int(f)) if f == int(f) else clean(v)
+    except (TypeError, ValueError):
+        return clean(v)
 
 
 def load(path):
@@ -134,11 +145,11 @@ def read_shp(path):
 def main():
     ayalon = load(AYALON_SRC)
     others = load(NTA_SRC)
-    lights = load(LIGHTS_SRC)
+    lights = read_shp(LIGHTS_SRC)  # Israel TM Grid points
+    print("Traffic lights:", len(lights))
 
     # --- NTA infrastructure layers (Israel TM Grid, meters) ------------------
     tm_to_wgs = Transformer.from_crs(2039, 4326, always_xy=True)
-    wgs_to_tm = Transformer.from_crs(4326, 2039, always_xy=True)
 
     def tm_geom_to_wgs(geom, simplify_m):
         g = geom.simplify(simplify_m, preserve_topology=True)
@@ -211,9 +222,9 @@ def main():
     print("NTA features after filter:", len(nta_feats))
 
     # --- projection centered on the traffic lights ---------------------------
-    pts = [f["geometry"]["coordinates"] for f in lights["features"]]
-    lon0 = sum(p[0] for p in pts) / len(pts)
-    lat0 = sum(p[1] for p in pts) / len(pts)
+    lights_ll = [tm_to_wgs.transform(g.x, g.y) for _, g in lights]
+    lon0 = sum(p[0] for p in lights_ll) / len(lights_ll)
+    lat0 = sum(p[1] for p in lights_ll) / len(lights_ll)
     project = local_projection(lon0, lat0)
     deg_per_m = 1.0 / (6371008.8 * math.pi / 180.0)
 
@@ -225,29 +236,26 @@ def main():
 
     # --- traffic lights with distances ---------------------------------------
     out_lights = []
-    for f in lights["features"]:
-        p = f["properties"]
-        lon, lat = f["geometry"]["coordinates"][:2]
-        pt = transform(project, shape(f["geometry"]))
+    for (rec, pt_tm), (lon, lat) in zip(lights, lights_ll):
+        pt = transform(project, Point(lon, lat))
         d_a = ayalon_union.distance(pt)
         d_n = nta_union.distance(pt)
-        pt_tm = Point(*wgs_to_tm.transform(lon, lat))
         d_l = lrt_union.distance(pt_tm)
         d_m = metro_union.distance(pt_tm)
         d_d = depo_union.distance(pt_tm)
-        streets = [clean(p.get(k)) for k in ("stree_1", "stree_2", "street_3")]
+        streets = [clean(rec.get(k)) for k in ("stree_1", "stree_2", "street_3")]
         out_lights.append({
-            "id": clean(p.get("OBJECTID")),
+            "id": fmt_id(rec.get("ID")),
             "lat": round(lat, 6),
             "lon": round(lon, 6),
-            "authority": norm_value(p.get("Current_au")),
-            "name": clean(p.get("name")),
-            "city": clean(p.get("City")),
-            "status": clean(p.get("Status")),
-            "mainStreet": clean(p.get("main_stree")),
+            "authority": norm_value(rec.get("Current_au")),
+            "name": clean(rec.get("name")),
+            "city": clean(rec.get("City")),
+            "status": clean(rec.get("Status")),
+            "mainStreet": clean(rec.get("main_stree")),
             "streets": [s for s in streets if s],
-            "source": clean(p.get("Source")),
-            "updated": clean(p.get("Date")),
+            "source": clean(rec.get("Source")),
+            "updated": clean(rec.get("Date")),
             "dA": round(d_a, 1) if d_a <= MAX_DIST_M else None,
             "dN": round(d_n, 1) if d_n <= MAX_DIST_M else None,
             "dL": round(d_l, 1) if d_l <= MAX_DIST_M else None,
