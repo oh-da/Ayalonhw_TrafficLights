@@ -1,0 +1,36 @@
+name: Update sources.js
+
+# Keeps the sources (i) dialog in sync: whenever data/sources.csv (or the
+# generator) changes, regenerate assets/data/sources.js and commit it back
+# to the same branch. The script only needs the Python standard library.
+
+on:
+  push:
+    paths:
+      - "data/sources.csv"
+      - "scripts/update_sources.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Regenerate sources.js
+        run: python3 scripts/update_sources.py
+
+      - name: Commit and push if changed
+        run: |
+          if git diff --quiet assets/data/sources.js; then
+            echo "sources.js already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/data/sources.js
+          git commit -m "Regenerate sources.js from sources.csv"
+          git push
